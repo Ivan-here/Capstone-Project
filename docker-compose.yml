@@ -47,7 +47,7 @@ services:
       context: .
       dockerfile: profile-service/Dockerfile
     ports:
-      - "8085:8085"
+      - "8081:8081"
     environment:
       MONGODB_URI: "${MONGODB_URI_PROFILE}"
       JWT_SECRET: "${JWT_SECRET}"
