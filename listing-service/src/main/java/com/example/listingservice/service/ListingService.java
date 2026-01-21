@@ -6,6 +6,7 @@ import com.example.listingservice.repository.ListingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import com.example.listingservice.client.ProfileClient; // Fixed import
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,29 +18,51 @@ import java.util.List;
 public class ListingService {
 
     private final ListingRepository repository;
+    private final ProfileClient profileClient;
 
-    public Listing createListing(CreateListingDTO dto) {
-        // Handle potential null tags list
+    public Listing createListing(CreateListingDTO dto, String expectedBusinessType) {
+
+        // A. Call Profile Service
+        log.info("Fetching profile for owner: {}", dto.ownerId());
+        var profile = profileClient.getProfile(dto.ownerId());
+
+        // --- DEBUG LOGGING START ---
+        log.info("RAW PROFILE DATA: {}", profile);
+        log.info("IS VERIFIED? {}", profile.isVerified());
+
+        // B. CHECK VERIFICATION (Using Helper Method)
+        if (!profile.isVerified()) {
+            throw new RuntimeException("Access Denied: You must be a VERIFIED business to post listings.");
+        }
+
+        // C. CHECK TYPE (Using Helper Method)
+        String actualType = profile.getBusinessType();
+        if (actualType == null || !actualType.equalsIgnoreCase(expectedBusinessType)) {
+            throw new RuntimeException("Access Denied: You are a " + actualType + ", but this endpoint is for " + expectedBusinessType + "s.");
+        }
+
+        // D. Create Listing (Auto-filling data using Helper Methods)
         List<String> tags = dto.tags() != null ? dto.tags() : new ArrayList<>();
 
         Listing listing = Listing.builder()
                 .ownerId(dto.ownerId())
+                .businessName(profile.getBusinessName())   // <--- Helper
+                .pickupLocation(profile.getPickupLocation()) // <--- Helper
                 .type(dto.type())
                 .title(dto.title())
                 .description(dto.description())
                 .category(dto.category())
-                .tags(tags) // Store the machine vision tags!
+                .tags(tags)
                 .price(dto.price())
                 .unit(dto.unit())
                 .quantity(dto.quantity())
                 .expiryDate(dto.expiryDate())
                 .imageUrl(dto.imageUrl())
-                .status("ACTIVE") // Default status
+                .status("ACTIVE")
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        log.info("Creating new listing: {} for owner: {}", dto.title(), dto.ownerId());
         return repository.save(listing);
     }
 
@@ -52,7 +75,6 @@ public class ListingService {
         return repository.findByStatus("ACTIVE");
     }
 
-    // Used by the Owner to close a listing
     public Listing closeListing(String id) {
         Listing listing = getListingById(id);
         listing.setStatus("CLOSED");
@@ -60,13 +82,11 @@ public class ListingService {
         return repository.save(listing);
     }
 
-    // Used by Orders Service to decrease stock
     public Listing updateStock(String id, UpdateListingDTO dto) {
         Listing listing = getListingById(id);
 
         listing.setQuantity(dto.newQuantity());
 
-        // Auto-close if out of stock
         if (dto.newQuantity() == 0) {
             listing.setStatus("OUT_OF_STOCK");
         }
