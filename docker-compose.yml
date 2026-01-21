@@ -1,32 +1,50 @@
 services:
-  # 1. The Database
+  # 1. The Database (FIXED CREDENTIALS)
   mongodb:
     image: mongo:latest
     container_name: mongodb
     ports:
       - "27017:27017"
+    environment:
+      # These MUST match your application.properties
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
     volumes:
       - mongo_data:/data/db
 
   # 2. Service A: Verification
   verification-service:
-    build: ./verification-service  # Path to the folder containing Dockerfile
+    build: ./verification-service
     container_name: verification_service
     ports:
       - "8083:8083"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker # Activates application-docker.properties
+      - SPRING_PROFILES_ACTIVE=docker
+      # Disable the version check that caused your error earlier
+      - SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED=false
     depends_on:
       - mongodb
 
   # 3. Service B: Listings
   listing-service:
-    build: ./listing-service      # Path to the folder containing Dockerfile
+    build: ./listing-service
     container_name: listing_service
     ports:
       - "8084:8084"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker # Activates application-docker.properties
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED=false
+    depends_on:
+      - mongodb
+
+  # 4. Service C: Profiles (NEW)
+  profile-service:
+    build: ./profile-service  # Make sure folder name matches exactly!
+    container_name: profile_service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
     depends_on:
       - mongodb
    

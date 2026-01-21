@@ -26,6 +26,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // allow health endpoints if you add actuator later
                         .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/internal/**").permitAll() // This covers both verify (POST) and get (GET)
                         // everything else must be authenticated
                         .anyRequest().authenticated()
                 )
