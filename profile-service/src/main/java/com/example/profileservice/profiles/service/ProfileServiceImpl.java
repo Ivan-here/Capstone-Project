@@ -26,6 +26,38 @@ public class ProfileServiceImpl implements ProfileService {
     private final BusinessProfileRepository businessRepo;
     private final RoleUpgradeClient roleUpgradeClient;
 
+
+    @Override
+    public void verifyUser(String userId) {
+        // 1. Find the business profile
+        BusinessProfile profile = businessRepo.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Business profile not found for user: " + userId));
+
+        // 2. Mark as Verified in MongoDB
+        profile.setVerified(true);
+        businessRepo.save(profile);
+        log.info("Updated BusinessProfile for user {}: isVerified=true", userId);
+
+        // 3. Map the BusinessType to the Identity Service ROLE String
+        // We use .name() to ensure it matches your "Role.java" enum exactly (e.g., "FARMER")
+        String roleToAdd = switch (profile.getBusinessType()) {
+            case FARMER -> "FARMER";         // Matches Role.FARMER
+            case RESTAURANT -> "RESTAURANT"; // Matches Role.RESTAURANT
+            case NGO -> "NGO";               // Matches Role.NGO
+            // Shopper is default, so we usually don't upgrade TO it, only FROM it
+            default -> throw new IllegalStateException("Unexpected business type: " + profile.getBusinessType());
+        };
+
+        // 4. Call Identity Service
+        try {
+            roleUpgradeClient.addRoleToUser(userId, roleToAdd);
+            log.info("Successfully requested role '{}' for user {}", roleToAdd, userId);
+        } catch (Exception e) {
+            log.error("Failed to add role '{}' to user {}. Verify Identity Service is running.", roleToAdd, userId, e);
+        }
+    }
+
+
     @Override
     public ProfileResponse getMe(String userId) {
         PersonalProfile personal = personalRepo.findByUserId(userId).orElse(null);
