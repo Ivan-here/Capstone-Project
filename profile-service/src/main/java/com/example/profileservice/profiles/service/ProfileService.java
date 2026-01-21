@@ -15,4 +15,6 @@ public interface ProfileService {
     BusinessProfile upsertBusiness(String userId, BusinessProfileRequest req);
 
     void deleteBusiness(String userId);
+
+    void verifyUser(String userId);
 }

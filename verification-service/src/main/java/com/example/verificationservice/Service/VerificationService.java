@@ -4,6 +4,7 @@ import com.example.verificationservice.DTO.ReviewRequestDTO;
 import com.example.verificationservice.DTO.SubmitRequestDTO;
 import com.example.verificationservice.Model.Verification;
 import com.example.verificationservice.Repository.VerificationRepository;
+import com.example.verificationservice.Client.ProfileClient; // Import your new client
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,14 +13,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor // Lombok creates the constructor for the Repository automatically
-@Slf4j // Allows us to log what's happening
+@RequiredArgsConstructor
+@Slf4j
 public class VerificationService {
 
     private final VerificationRepository repository;
+    private final ProfileClient profileClient; // <--- Inject the client
 
     public Verification submitRequest(SubmitRequestDTO dto) {
-        // Using the @Builder from your Model!
         Verification verification = Verification.builder()
                 .userId(dto.userId())
                 .type(dto.type())
@@ -40,8 +41,20 @@ public class VerificationService {
         verification.setAdminNotes(dto.adminNotes());
         verification.setUpdatedAt(LocalDateTime.now());
 
-        log.info("Verification {} has been updated to {}", id, dto.status());
-        return repository.save(verification);
+        Verification saved = repository.save(verification);
+
+        // THE NEW LOGIC: Notify Profile Service if Approved
+        if ("APPROVED".equalsIgnoreCase(dto.status())) {
+            try {
+                log.info("Verification approved. Notifying Profile Service for user {}", verification.getUserId());
+                profileClient.verifyProfile(verification.getUserId());
+            } catch (Exception e) {
+                log.error("Failed to notify Profile Service: " + e.getMessage());
+                // We catch the error so the verification itself doesn't fail just because the notification failed
+            }
+        }
+
+        return saved;
     }
 
     public List<Verification> getPendingRequests() {
