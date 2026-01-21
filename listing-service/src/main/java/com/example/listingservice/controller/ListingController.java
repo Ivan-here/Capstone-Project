@@ -18,23 +18,21 @@ public class ListingController {
 
     private final ListingService service;
 
-    // 1. POST /listings/farm (Role: FARMER)
+    // 1. Endpoint for FARMERS only
     @PostMapping("/farm")
     @ResponseStatus(HttpStatus.CREATED)
     public Listing createFarmListing(@Valid @RequestBody CreateListingDTO dto) {
-        // You might want to force the type here to ensure safety
-        // dto = new CreateListingDTO(..., "FARM_PRODUCT", ...);
-        // For now, we trust the DTO validation
-        return service.createListing(dto);
+        // We pass "FARMER" as the expected type
+        return service.createListing(dto, "FARMER");
     }
 
-    // 2. POST /listings/surplus (Role: RESTAURANT)
+    // 2. Endpoint for RESTAURANTS only
     @PostMapping("/surplus")
     @ResponseStatus(HttpStatus.CREATED)
     public Listing createSurplusListing(@Valid @RequestBody CreateListingDTO dto) {
-        return service.createListing(dto);
+        // We pass "RESTAURANT" as the expected type
+        return service.createListing(dto, "RESTAURANT");
     }
-
     // 3. GET /listings (Browse)
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
