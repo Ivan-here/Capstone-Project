@@ -21,6 +21,7 @@ public class Listing {
 
     private String ownerId;
     private String type; // FARM_PRODUCT or SURPLUS_FOOD
+    private String businessName;
 
     private String title;
     private String description;

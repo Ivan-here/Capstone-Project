@@ -22,6 +22,9 @@ public class BusinessProfile {
     private String businessName;
     private String address;
 
+    // ADD THIS FIELD
+    private boolean isVerified = false;
+
     //type-specific
     private String hours;               // restaurant
     private String pickupInstructions;  // restaurant/farmer
