@@ -17,7 +17,7 @@ WORKDIR /app
 
 COPY --from=build /app/profile-service/build/libs/*.jar app.jar
 
-EXPOSE 8085
+EXPOSE 8081
 
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
 
