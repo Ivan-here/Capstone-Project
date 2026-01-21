@@ -1,7 +1,7 @@
 plugins {
     java
     // Kotlin uses ("") and version "..."
-    id("org.springframework.boot") version "3.5.8" // 3.5.8 does not exist yet!
+    id("org.springframework.boot") version "3.5.8"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -26,6 +26,14 @@ repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2023.0.3")
+    }
+}
+extra["springCloudVersion"] = "2024.0.0"
+
+
 dependencies {
     // Kotlin requires parentheses ("...") and double quotes
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
@@ -33,6 +41,8 @@ dependencies {
 
     // Correct artifact is 'spring-boot-starter-web', NOT 'webmvc'
     implementation("org.springframework.boot:spring-boot-starter-web")
+
+    implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
