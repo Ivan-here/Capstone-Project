@@ -29,19 +29,44 @@ services:
       - SPRING_PROFILES_ACTIVE=docker # Activates application-docker.properties
     depends_on:
       - mongodb
+   
 
-  # 4. Service C: Order & Reservation
+  identity-service:
+    build:
+      context: .
+      dockerfile: identity-service/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      MONGODB_URI: "${MONGODB_URI_IDENTITY}"
+      JWT_SECRET: "${JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
+
+  profile-service:
+    build:
+      context: .
+      dockerfile: profile-service/Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      MONGODB_URI: "${MONGODB_URI_PROFILE}"
+      JWT_SECRET: "${JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
+      CLIENTS_IDENTITYBASEURL: "http://identity-service:8082"
+    depends_on:
+      - identity-service
+      
+  # 6. Service E: Order & Reservation 
   order-reservation-service:
     build: ./order_reservation-service
     container_name: order_reservation_service
     ports:
-      - "8085:8085"
+      - "8086:8085"
     depends_on:
       - mongodb
     environment:
-      - SPRING_MONGODB_URI=mongodb://mongodb:27017/order_reservationdb
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/order_reservationdb
-
+      - SPRING_MONGODB_URI=mongodb://mongodb:27017/order_reservationdb
 
 volumes:
   mongo_data:
