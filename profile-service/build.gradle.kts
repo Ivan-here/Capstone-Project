@@ -20,6 +20,12 @@ configurations {
 	}
 }
 
+dependencyManagement {
+	imports {
+		mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.3")
+	}
+}
+
 repositories {
 	mavenCentral()
 }
@@ -40,6 +46,8 @@ dependencies {
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.security:spring-security-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	//Feign
+	implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
 }
 
 tasks.withType<Test> {
