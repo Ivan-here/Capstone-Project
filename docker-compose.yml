@@ -30,5 +30,18 @@ services:
     depends_on:
       - mongodb
 
+  # 4. Service C: Order & Reservation
+  order-reservation-service:
+    build: ./order_reservation-service
+    container_name: order_reservation_service
+    ports:
+      - "8085:8085"
+    depends_on:
+      - mongodb
+    environment:
+      - SPRING_MONGODB_URI=mongodb://mongodb:27017/order_reservationdb
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/order_reservationdb
+
+
 volumes:
   mongo_data:
