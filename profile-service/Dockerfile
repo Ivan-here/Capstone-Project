@@ -1,16 +1,24 @@
-# 1. Start with a base image containing Java 21
-FROM eclipse-temurin:21-jdk-alpine
-
-# 2. Set the working directory inside the container
+# ---------- BUILD STAGE ----------
+FROM gradle:8.7-jdk21 AS build
 WORKDIR /app
 
-# 3. Copy the built JAR file into the container
-# This assumes the JAR is named 'profile-service-0.0.1-SNAPSHOT.jar'
-# The wildcard *.jar handles slight version name changes automatically
-COPY build/libs/*.jar app.jar
+COPY gradle gradle
+COPY gradlew .
+COPY settings.gradle.kts .
+COPY build.gradle.kts .
 
-# 4. Expose the port the app runs on
+COPY profile-service profile-service
+
+RUN ./gradlew :profile-service:bootJar --no-daemon
+
+# ---------- RUN STAGE ----------
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+COPY --from=build /app/profile-service/build/libs/*.jar app.jar
+
 EXPOSE 8081
 
-# 5. Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
