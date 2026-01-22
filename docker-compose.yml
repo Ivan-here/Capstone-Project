@@ -1,16 +1,16 @@
 services:
   # 1. The Database (FIXED CREDENTIALS)
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    environment:
-      # These MUST match your application.properties
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: rootpass
-    volumes:
-      - mongo_data:/data/db
+#  mongodb:
+#    image: mongo:latest
+#    container_name: mongodb
+#    ports:
+#      - "27017:27017"
+#    environment:
+#      # These MUST match your application.properties
+#      MONGO_INITDB_ROOT_USERNAME: myuser
+#      MONGO_INITDB_ROOT_PASSWORD: rootpass
+#    volumes:
+#      - mongo_data:/data/db
 
   # 2. Service A: Verification
   verification-service:
@@ -19,60 +19,55 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      # Disable the version check that caused your error earlier
-      - SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED=false
-    depends_on:
-      - mongodb
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_VERIFICATION}"
 
-  # 3. Service B: Listings
   listing-service:
     build: ./listing-service
     container_name: listing_service
     ports:
       - "8084:8084"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED=false
-    depends_on:
-      - mongodb
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_LISTING}"
 
   identity-service:
     build:
-      context: .
-      dockerfile: identity-service/Dockerfile
+      context: ./identity-service
+    container_name: identity_service
     ports:
       - "8082:8082"
     environment:
-      MONGODB_URI: "${MONGODB_URI_IDENTITY}"
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_IDENTITY}"
       JWT_SECRET: "${JWT_SECRET}"
       INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
 
   profile-service:
     build:
-      context: .
-      dockerfile: profile-service/Dockerfile
+      context: ./profile-service
+    container_name: profile_service
     ports:
       - "8081:8081"
     environment:
-      MONGODB_URI: "${MONGODB_URI_PROFILE}"
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_PROFILE}"
       JWT_SECRET: "${JWT_SECRET}"
       INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
       CLIENTS_IDENTITYBASEURL: "http://identity-service:8082"
     depends_on:
       - identity-service
-      
-  # 6. Service E: Order & Reservation 
+
   order-reservation-service:
     build: ./order_reservation-service
     container_name: order_reservation_service
     ports:
       - "8086:8085"
-    depends_on:
-      - mongodb
     environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/order_reservationdb
-      - SPRING_MONGODB_URI=mongodb://mongodb:27017/order_reservationdb
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_ORDER}"
 
 volumes:
   mongo_data:
