@@ -37,18 +37,6 @@ services:
     depends_on:
       - mongodb
 
-  # 4. Service C: Profiles (NEW)
-  profile-service:
-    build: ./profile-service  # Make sure folder name matches exactly!
-    container_name: profile_service
-    ports:
-      - "8081:8081"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    depends_on:
-      - mongodb
-   
-
   identity-service:
     build:
       context: .
