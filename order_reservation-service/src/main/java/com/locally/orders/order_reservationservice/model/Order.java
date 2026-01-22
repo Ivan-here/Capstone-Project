@@ -36,9 +36,12 @@ public class Order {
 
     // --- HELPER: Updates status AND history at the same time ---
     public void updateStatus(OrderStatus newStatus, String changedBy) {
+        if (this.history == null) this.history = new ArrayList<>();
+        if (this.orderDate == null) this.orderDate = LocalDateTime.now();
         this.status = newStatus;
         this.history.add(new StatusHistoryItem(newStatus, LocalDateTime.now(), changedBy));
     }
+
 
     // --- INNER CLASS (StatusHistory) ---
     @Data

@@ -8,6 +8,7 @@ import com.locally.orders.order_reservationservice.repository.ReservationReposit
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -17,55 +18,60 @@ public class OrderReservationService {
     private final OrderRepository orderRepository;
     private final ReservationRepository reservationRepository;
 
-    // ==========================================
-    //               ORDER LOGIC
-    // ==========================================
+    // ================= ORDERS =================
 
-    public void placeOrder(Order order) {
-        if (order.getStatus() == null) {
-            order.updateStatus(OrderStatus.PENDING, "System");
+    public Order placeOrder(Order order) {
+
+        // Ensure items list is never null
+        if (order.getItems() == null) {
+            order.setItems(new ArrayList<>());
         }
-        orderRepository.save(order);
+
+        // Default status if not provided
+        if (order.getStatus() == null) {
+            order.updateStatus(OrderStatus.PENDING, "system");
+        } else {
+            // Ensure history is initialized even if status came from request
+            order.updateStatus(order.getStatus(), "system");
+        }
+
+        return orderRepository.save(order);
     }
 
-    public void updateOrderStatus(String id, OrderStatus newStatus) {
-        Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + id));
+    public Order updateOrderStatus(String orderId, OrderStatus status) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        // Use the helper method we made in your Model
-        order.updateStatus(newStatus, "Restaurant");
-
-        orderRepository.save(order);
+        order.updateStatus(status, "restaurant");
+        return orderRepository.save(order);
     }
 
-    public List<Order> getOrdersForShopper(String shopperId) {
+    public List<Order> getOrdersByShopper(String shopperId) {
         return orderRepository.findByShopperId(shopperId);
     }
 
-    public List<Order> getOrdersForRestaurant(String restaurantId) {
+    public List<Order> getOrdersByRestaurant(String restaurantId) {
         return orderRepository.findByRestaurantId(restaurantId);
     }
 
-    // ==========================================
-    //            RESERVATION LOGIC
-    // ==========================================
+    // ================= RESERVATIONS =================
 
-    public void placeReservation(Reservation reservation) {
-        reservationRepository.save(reservation);
+    public Reservation createReservation(Reservation reservation) {
+        return reservationRepository.save(reservation);
     }
 
-    public Reservation getReservation(String id) {
-        return reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reservation not found with ID: " + id));
-    }
-
-    public void updateReservationStatus(String id, String newStatus) {
-        Reservation res = getReservation(id);
-        res.setStatus(newStatus);
-        reservationRepository.save(res);
-    }
-
-    public List<Reservation> getReservationsForNgo(String ngoId) {
+    public List<Reservation> getReservationsByNgo(String ngoId) {
         return reservationRepository.findByNgoId(ngoId);
+    }
+
+    public Reservation getReservationById(String id) {
+        return reservationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+    }
+
+    public Reservation updateReservationStatus(String id, String status) {
+        Reservation reservation = getReservationById(id);
+        reservation.setStatus(status);
+        return reservationRepository.save(reservation);
     }
 }

@@ -1,15 +1,23 @@
-# 1. Start with a Java 21 base image
-FROM eclipse-temurin:21-jdk-alpine
-
-# 2. Set the working directory inside the container
+# ---------- BUILD STAGE ----------
+FROM gradle:8.7-jdk21 AS build
 WORKDIR /app
 
-# 3. Copy the built JAR file into the container
-# Note: We assume you run 'gradlew bootJar' before building the docker image
-COPY build/libs/*.jar app.jar
+# Copy everything from THIS service folder (build context)
+COPY . .
 
-# 4. Expose the port
+# Ensure gradlew is executable (common on Windows)
+RUN chmod +x ./gradlew
+
+# Build the boot jar for this service
+RUN ./gradlew clean bootJar --no-daemon -x test
+
+# ---------- RUN STAGE ----------
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+# Copy jar from build stage
+COPY --from=build /app/build/libs/*.jar app.jar
+
 EXPOSE 8084
-
-# 5. Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
