@@ -36,17 +36,6 @@ services:
       - SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED=false
     depends_on:
       - mongodb
-
-  # 4. Service C: Profiles (NEW)
-  profile-service:
-    build: ./profile-service  # Make sure folder name matches exactly!
-    container_name: profile_service
-    ports:
-      - "8081:8081"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    depends_on:
-      - mongodb
    
 
   identity-service:
@@ -83,8 +72,11 @@ services:
     depends_on:
       - mongodb
     environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/order_reservationdb
-      - SPRING_MONGODB_URI=mongodb://mongodb:27017/order_reservationdb
+      - SPRING_DATA_MONGODB_URI=mongodb://root:rootpass@mongodb:27017/order_reservationdb?authSource=admin
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_MVC_METHOD_ANNOTATION_REQUESTMAPPINGHANDLERMAPPING=TRACE
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB=DEBUG
+
+
 
 volumes:
   mongo_data:
