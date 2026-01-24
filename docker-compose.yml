@@ -69,5 +69,15 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_ORDER}"
 
+  notifications-service:
+    build: ./notifications-service
+    container_name: notifications_service
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_NOTIFICATIONS}"
+
 volumes:
   mongo_data:
