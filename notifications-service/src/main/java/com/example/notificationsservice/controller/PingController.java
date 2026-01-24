@@ -1,4 +1,4 @@
-package com.example.notificationsservice;
+package com.example.notificationsservice.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
