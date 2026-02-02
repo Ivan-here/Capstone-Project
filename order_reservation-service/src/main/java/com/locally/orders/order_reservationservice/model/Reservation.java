@@ -16,6 +16,7 @@ public class Reservation {
     @Id
     private String id;
 
+
     private String ngoId;           // The NGO claiming the food
     private String restaurantId;    // The Restaurant giving the food
     private String surplusItemId;   // The specific food item ID (from Listing Service)
