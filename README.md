@@ -4,5 +4,5 @@
 # listing service running on 8084
 # identity service running on 8082
 # api-gateway running on 9000
-# notif service running on 8085
+# order service running on 8086
 
