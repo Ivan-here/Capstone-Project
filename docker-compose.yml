@@ -64,10 +64,12 @@ services:
     build: ./order_reservation-service
     container_name: order_reservation_service
     ports:
-      - "8086:8085"
+      - "8086:8086"
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_ORDER}"
+      LISTING_SERVICE_BASE_URL: "http://listing-service:8084"
+
 
   notifications-service:
     build: ./notifications-service
