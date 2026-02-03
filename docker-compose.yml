@@ -6,6 +6,7 @@ services:
 #    ports:
 #      - "27017:27017"
 #    environment:
+
 #      # These MUST match your application.properties
 #      MONGO_INITDB_ROOT_USERNAME: myuser
 #      MONGO_INITDB_ROOT_PASSWORD: rootpass
