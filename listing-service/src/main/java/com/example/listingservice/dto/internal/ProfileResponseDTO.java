@@ -12,7 +12,7 @@ public record ProfileResponseDTO(
     // --- HELPER METHODS (Use these in ListingService!) ---
 
     public boolean isVerified() {
-        return businessProfile != null && businessProfile.Verified();
+        return businessProfile != null && businessProfile.verified();
     }
 
     public String getBusinessName() {
@@ -34,5 +34,6 @@ record BusinessProfileDTO(
         String businessName,
         String address,
         String businessType, // <--- Added this back!
-         boolean Verified // Maps JSON "verified" to Java "isVerified"
-) {}
+// FIX: Renamed to lowercase 'verified' to match JSON exactly
+        @JsonProperty("verified")
+        boolean verified) {}

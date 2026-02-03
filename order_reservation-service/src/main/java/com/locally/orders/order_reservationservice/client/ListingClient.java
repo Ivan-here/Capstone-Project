@@ -48,6 +48,10 @@ public class ListingClient {
     public static class ListingDto {
         private String id;
         private Integer quantity;
+
+        //  add these so orders service can validate business rules
+        private String status; // ACTIVE, CLOSED, OUT_OF_STOCK
+        private String type;   // FARM_PRODUCT, SURPLUS_F
     }
 
     // DTO for PATCH request body
