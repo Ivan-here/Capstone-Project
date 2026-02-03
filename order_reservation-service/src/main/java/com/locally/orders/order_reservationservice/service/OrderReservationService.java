@@ -9,8 +9,7 @@ import com.locally.orders.order_reservationservice.repository.ReservationReposit
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -29,11 +28,52 @@ public class OrderReservationService {
             order.setItems(new ArrayList<>());
         }
 
+        // ✅ Reduce stock for FARM_PRODUCT paid orders
+        // Treat each item ID in the list as quantity 1.
+        if (!order.getItems().isEmpty()) {
+
+            // count duplicates => quantity per listing
+            Map<String, Integer> counts = new HashMap<>();
+            for (String listingId : order.getItems()) {
+                if (listingId != null && !listingId.isBlank()) {
+                    counts.put(listingId, counts.getOrDefault(listingId, 0) + 1);
+                }
+            }
+
+            for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+                String listingId = entry.getKey();
+                int qtyWanted = entry.getValue();
+
+                var listing = listingClient.getListing(listingId);
+                if (listing == null) {
+                    throw new RuntimeException("Listing not found: " + listingId);
+                }
+
+                // ✅ Must be ACTIVE
+                if (listing.getStatus() == null || !"ACTIVE".equalsIgnoreCase(listing.getStatus())) {
+                    throw new RuntimeException("Listing is not active: " + listingId + " (status=" + listing.getStatus() + ")");
+                }
+
+                // ✅ Must be FARM_PRODUCT for paid orders
+                if (listing.getType() == null || !"FARM_PRODUCT".equalsIgnoreCase(listing.getType())) {
+                    throw new RuntimeException("This listing cannot be ordered (type=" + listing.getType() + ")");
+                }
+
+                int availableQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
+                if (availableQty < qtyWanted) {
+                    throw new RuntimeException("Not enough stock for listing " + listingId +
+                            " (wanted=" + qtyWanted + ", available=" + availableQty + ")");
+                }
+
+                // decrease quantity
+                listingClient.updateListingQuantity(listingId, availableQty - qtyWanted);
+            }
+        }
+
         // Default status if not provided
         if (order.getStatus() == null) {
             order.updateStatus(OrderStatus.PENDING, "system");
         } else {
-            // Ensure history is initialized even if status came from request
             order.updateStatus(order.getStatus(), "system");
         }
 
@@ -60,29 +100,33 @@ public class OrderReservationService {
 
     /**
      * Create reservation AND reduce listing quantity by 1 (1 reservation = 1 item)
+     * Only allowed for ACTIVE + SURPLUS_FOOD listings.
      */
     public Reservation createReservation(Reservation reservation) {
 
-        // 1️⃣ Ask Listing service for listing quantity
         var listing = listingClient.getListing(reservation.getSurplusItemId());
         if (listing == null) {
             throw new RuntimeException("Listing not found");
         }
 
-        int availableQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
+        // ✅ block CLOSED / OUT_OF_STOCK / anything not ACTIVE
+        if (listing.getStatus() == null || !"ACTIVE".equalsIgnoreCase(listing.getStatus())) {
+            throw new RuntimeException("Cannot reserve: listing is not ACTIVE (status=" + listing.getStatus() + ")");
+        }
 
-        // 2️⃣ Ensure at least 1 available
+        // ✅ reservations only for surplus food
+        if (listing.getType() == null || !"SURPLUS_FOOD".equalsIgnoreCase(listing.getType())) {
+            throw new RuntimeException("Cannot reserve: listing type must be SURPLUS_FOOD (type=" + listing.getType() + ")");
+        }
+
+        int availableQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
         if (availableQty < 1) {
             throw new RuntimeException("No quantity available");
         }
 
-        // 3️⃣ Decrease quantity by 1 in Listing service
-        listingClient.updateListingQuantity(
-                reservation.getSurplusItemId(),
-                availableQty - 1
-        );
+        // decrease quantity by 1
+        listingClient.updateListingQuantity(reservation.getSurplusItemId(), availableQty - 1);
 
-        // 4️⃣ Save reservation as usual
         return reservationRepository.save(reservation);
     }
 
@@ -97,21 +141,17 @@ public class OrderReservationService {
 
     /**
      * Update reservation status.
-     * If CANCELLED, return quantity back to listing-service (+1).
+     * If CANCELLED (and wasn't already cancelled), return quantity back to listing-service (+1).
      */
     public Reservation updateReservationStatus(String id, String status) {
         Reservation reservation = getReservationById(id);
 
-        // If cancelling, return 1 item back to listing-service
-        if ("CANCELLED".equalsIgnoreCase(status)) {
+        // ✅ prevent double restock
+        if ("CANCELLED".equalsIgnoreCase(status) && !"CANCELLED".equalsIgnoreCase(reservation.getStatus())) {
             var listing = listingClient.getListing(reservation.getSurplusItemId());
             if (listing != null) {
                 int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
-
-                listingClient.updateListingQuantity(
-                        reservation.getSurplusItemId(),
-                        currentQty + 1
-                );
+                listingClient.updateListingQuantity(reservation.getSurplusItemId(), currentQty + 1);
             }
         }
 
