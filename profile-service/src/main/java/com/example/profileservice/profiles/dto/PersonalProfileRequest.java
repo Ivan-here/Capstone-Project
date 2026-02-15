@@ -6,12 +6,17 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record PersonalProfileRequest(
-        @NotBlank(message = "fullName is required")
-        @Size(max = 120, message = "fullName max 120 chars")
-        String fullName,
+        @NotBlank(message = "firstName is required")
+        @Size(max = 60, message = "firstName max 60 chars")
+        String firstName,
 
-        @Size(max = 30, message = "phone max 30 chars")
-        String phone,
+        @NotBlank(message = "lastName is required")
+        @Size(max = 60, message = "lastName max 60 chars")
+        String lastName,
 
-        List<@Size(max = 200, message = "address max 200 chars") String> addresses
+        @Size(max = 30, message = "contactNumber max 30 chars")
+        String contactNumber,
+
+        @Size(max = 120, message = "email max 120 chars")
+        String email
 ) {}
