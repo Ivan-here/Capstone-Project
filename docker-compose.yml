@@ -82,5 +82,20 @@ services:
       SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_NOTIFICATIONS}"
 
+  api-gateway:
+    build:
+      context: ./api-gateway
+    ports:
+      - "9000:9000"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - identity-service
+      - profile-service
+      - listing-service
+      - verification-service
+      - order-reservation-service
+      - notifications-service
+
 volumes:
   mongo_data:
