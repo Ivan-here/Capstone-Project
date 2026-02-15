@@ -1,5 +1,7 @@
 package com.example.profileservice.profiles.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -33,4 +35,7 @@ public class BusinessProfile {
 
     private Instant createdAt;
     private Instant updatedAt;
+
+    public void setEmail(@NotBlank(message = "email is required") @Size(max = 120, message = "email max 120 chars") String email) {
+    }
 }
