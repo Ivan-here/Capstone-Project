@@ -76,19 +76,15 @@ public class ProfileServiceImpl implements ProfileService {
             p.setAddresses(List.of());
         }
 
-        p.setFullName(req.fullName());
-        p.setPhone(req.phone());
-        p.setAddresses(req.addresses() == null ? List.of() : req.addresses());
+        p.setFullName((req.firstName() + " " + req.lastName()).trim());
+        p.setPhone(req.contactNumber());
         p.setUpdatedAt(Instant.now());
 
-        PersonalProfile saved = personalRepo.save(p);
-        log.info("Personal profile {} for userId={}", isNew ? "created" : "updated", userId);
-        return saved;
+        return personalRepo.save(p);
     }
 
     @Override
     public BusinessProfile upsertBusiness(String userId, BusinessProfileRequest req) {
-        validateBusinessByType(req);
 
         BusinessProfile b = businessRepo.findByUserId(userId).orElseGet(BusinessProfile::new);
         boolean isNew = (b.getId() == null);
@@ -96,28 +92,31 @@ public class ProfileServiceImpl implements ProfileService {
         if (isNew) {
             b.setUserId(userId);
             b.setCreatedAt(Instant.now());
+            b.setVerified(false);
         }
 
         b.setBusinessType(req.businessType());
-        b.setBusinessName(req.businessName());
+        b.setBusinessName(req.name());
         b.setAddress(req.address());
-        b.setHours(req.hours());
-        b.setPickupInstructions(req.pickupInstructions());
-        b.setServiceArea(req.serviceArea());
-        b.setEligibilityNotes(req.eligibilityNotes());
+
+        // store the description in one of your existing optional fields
+        b.setPickupInstructions(req.description()); // or eligibilityNotes
+
+        // Optional: persist email (requires adding field to BusinessProfile model)
+        b.setEmail(req.email());
+
         b.setUpdatedAt(Instant.now());
 
         BusinessProfile saved = businessRepo.save(b);
 
-        String roleToAdd = switch (req.businessType()) {
-            case FARMER -> "FARMER";
-            case RESTAURANT -> "RESTAURANT";
-            case NGO -> "NGO";
-        };
+//        String roleToAdd = switch (req.businessType()) {
+//            case FARMER -> "FARMER";
+//            case RESTAURANT -> "RESTAURANT";
+//            case NGO -> "NGO";
+//        };
+//
+//        roleUpgradeClient.addRoleToUser(userId, roleToAdd);
 
-        roleUpgradeClient.addRoleToUser(userId, roleToAdd);
-
-        log.info("Business profile {} for userId={}, type={}", isNew ? "created" : "updated", userId, req.businessType());
         return saved;
     }
 
@@ -136,18 +135,6 @@ public class ProfileServiceImpl implements ProfileService {
         BusinessType type = req.businessType();
         if (type == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "businessType is required");
-        }
-
-        if (type == BusinessType.RESTAURANT) {
-            if (req.hours() == null || req.hours().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "hours is required for RESTAURANT");
-            }
-        }
-
-        if (type == BusinessType.NGO) {
-            if (req.serviceArea() == null || req.serviceArea().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "serviceArea is required for NGO");
-            }
         }
     }
 }
