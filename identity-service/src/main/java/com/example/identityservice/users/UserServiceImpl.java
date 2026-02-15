@@ -18,28 +18,73 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder encoder;
 
     @Override
-    public UserCredential register(String email, String rawPassword, String displayName) {
-        if (userRepo.existsByEmail(email)) {
+    public UserCredential register(String email, String rawPassword, String username, String firstName, String lastName, String displayName) {
+        String normalizedEmail = email == null ? null : email.toLowerCase().trim();
+        String normalizedUsername = username == null ? null : username.trim();
+        String normalizedFirstName = firstName == null ? null : firstName.trim();
+        String normalizedLastName = lastName == null ? null : lastName.trim();
+        String normalizedDisplayName = displayName == null ? null : displayName.trim();
+
+        if (normalizedEmail == null || normalizedEmail.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required");
+        }
+        if (normalizedUsername == null || normalizedUsername.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username is required");
+        }
+        if (normalizedFirstName == null || normalizedFirstName.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First name is required");
+        }
+        if (normalizedLastName == null || normalizedLastName.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Last name is required");
+        }
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password is required");
+        }
+        if (userRepo.existsByEmail(normalizedEmail)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
+        if (userRepo.existsByUsername(normalizedUsername)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
+        }
+
+        //displayName not provided - can generate it
+        if (normalizedDisplayName == null || normalizedDisplayName.isBlank()) {
+            normalizedDisplayName = normalizedFirstName + " " + normalizedLastName;
+        }
+
+        Instant now = Instant.now();
 
         UserCredential u = new UserCredential();
-        u.setEmail(email.toLowerCase().trim());
-        u.setDisplayName(displayName);
+        u.setEmail(normalizedEmail);
+        u.setUsername(normalizedUsername);
+        u.setFirstName(normalizedFirstName);
+        u.setLastName(normalizedLastName);
+        u.setDisplayName(normalizedDisplayName);
+
         u.setPasswordHash(encoder.encode(rawPassword));
         u.getRoles().add(Role.SHOPPER);
         u.setStatus(UserStatus.ACTIVE);
-        u.setCreatedAt(Instant.now());
-        u.setUpdatedAt(Instant.now());
+        u.setCreatedAt(now);
+        u.setUpdatedAt(now);
 
         UserCredential saved = userRepo.save(u);
-        log.info("Registered userId={} email={}", saved.getId(), saved.getEmail());
+        log.info("Registered userId={} email={} username={}", saved.getId(), saved.getEmail(), saved.getUsername());
         return saved;
     }
 
     @Override
-    public UserCredential authenticate(String email, String rawPassword) {
-        UserCredential u = userRepo.findByEmail(email.toLowerCase().trim())
+    public UserCredential authenticate(String login, String rawPassword) {
+        String normalizedLogin = login == null ? null : login.trim();
+        if (normalizedLogin == null || normalizedLogin.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email or username is required");
+        }
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password is required");
+        }
+
+        String emailCandidate = normalizedLogin.toLowerCase();
+
+        UserCredential u = userRepo.findByEmailOrUsername(emailCandidate, normalizedLogin)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         if (u.getStatus() != UserStatus.ACTIVE) {
@@ -50,7 +95,7 @@ public class UserServiceImpl implements UserService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
-        log.info("Authenticated userId={} email={}", u.getId(), u.getEmail());
+        log.info("Authenticated userId={} email={} username={}", u.getId(), u.getEmail(), u.getUsername());
         return u;
     }
 
