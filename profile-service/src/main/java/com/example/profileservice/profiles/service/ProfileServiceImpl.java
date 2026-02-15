@@ -130,11 +130,4 @@ public class ProfileServiceImpl implements ProfileService {
 
         // Later: call identity-service to remove role(s)
     }
-
-    private void validateBusinessByType(BusinessProfileRequest req) {
-        BusinessType type = req.businessType();
-        if (type == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "businessType is required");
-        }
-    }
 }
