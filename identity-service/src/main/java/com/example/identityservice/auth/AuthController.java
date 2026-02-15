@@ -21,14 +21,25 @@ public class AuthController {
 
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody RegisterRequest req) {
-        UserCredential u = userService.register(req.email(), req.password(), req.displayName());
-        String token = jwtService.issueAccessToken(u.getId(), u.getRoles());
 
+        UserCredential u = userService.register(
+                req.email(),
+                req.password(),
+                req.username(),
+                req.firstName(),
+                req.lastName(),
+                req.displayName() // optional
+        );
+
+        String token = jwtService.issueAccessToken(u.getId(), u.getRoles());
         log.info("Issued JWT on register userId={}", u.getId());
 
         return new AuthResponse(
                 u.getId(),
                 u.getEmail(),
+                u.getUsername(),
+                u.getFirstName(),
+                u.getLastName(),
                 u.getDisplayName(),
                 u.getRoles(),
                 u.getStatus(),
@@ -39,14 +50,18 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest req) {
-        UserCredential u = userService.authenticate(req.email(), req.password());
-        String token = jwtService.issueAccessToken(u.getId(), u.getRoles());
 
+        UserCredential u = userService.authenticate(req.login(), req.password());
+
+        String token = jwtService.issueAccessToken(u.getId(), u.getRoles());
         log.info("Issued JWT on login userId={}", u.getId());
 
         return new AuthResponse(
                 u.getId(),
                 u.getEmail(),
+                u.getUsername(),
+                u.getFirstName(),
+                u.getLastName(),
                 u.getDisplayName(),
                 u.getRoles(),
                 u.getStatus(),

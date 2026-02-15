@@ -20,7 +20,11 @@ public class UserCredential {
     private String email;
 
     private String passwordHash;
+    private String username;
     private String displayName;
+
+    private String firstName;
+    private String lastName;
 
     private Set<Role> roles = new HashSet<>();
 
