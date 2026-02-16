@@ -25,6 +25,7 @@ public class PersonalProfile {
     private String role;       // "Shopper", "Farmer", etc (or whatever your UI shows)
     private String location;   // "Toronto, ON"
     private String about;
+    private String username;
 
     private String phone;
     private String email;
