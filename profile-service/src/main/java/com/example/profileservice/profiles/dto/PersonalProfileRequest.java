@@ -1,5 +1,7 @@
 package com.example.profileservice.profiles.dto;
 
+import com.example.profileservice.profiles.model.PersonalProfile;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -14,9 +16,19 @@ public record PersonalProfileRequest(
         @Size(max = 60, message = "lastName max 60 chars")
         String lastName,
 
-        @Size(max = 30, message = "contactNumber max 30 chars")
-        String contactNumber,
-
+        @NotBlank(message = "email is required")
+        @Email(message = "email must be valid")
         @Size(max = 120, message = "email max 120 chars")
-        String email
+        String email,
+
+        // optional fields (can be null)
+        String role,
+        String location,
+        String about,
+        String phone,
+        List<String> addresses,
+        List<String> preferences,
+        PersonalProfile.Stats stats,
+        List<PersonalProfile.FollowPerson> followingPeople,
+        List<PersonalProfile.Rating> ratings
 ) {}
