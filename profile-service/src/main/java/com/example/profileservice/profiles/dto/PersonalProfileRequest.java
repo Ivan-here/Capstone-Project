@@ -21,6 +21,8 @@ public record PersonalProfileRequest(
         @Size(max = 120, message = "email max 120 chars")
         String email,
 
+        String username,
+
         // optional fields (can be null)
         String role,
         String location,
