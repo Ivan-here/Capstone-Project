@@ -109,13 +109,13 @@ public class ProfileServiceImpl implements ProfileService {
 
         BusinessProfile saved = businessRepo.save(b);
 
-//        String roleToAdd = switch (req.businessType()) {
-//            case FARMER -> "FARMER";
-//            case RESTAURANT -> "RESTAURANT";
-//            case NGO -> "NGO";
-//        };
-//
-//        roleUpgradeClient.addRoleToUser(userId, roleToAdd);
+        String roleToAdd = switch (req.businessType()) {
+            case FARMER -> "FARMER";
+            case RESTAURANT -> "RESTAURANT";
+            case NGO -> "NGO";
+        };
+
+        roleUpgradeClient.addRoleToUser(userId, roleToAdd);
 
         return saved;
     }
