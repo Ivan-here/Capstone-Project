@@ -24,18 +24,15 @@ public class BusinessProfile {
     private String businessName;
     private String address;
 
-    // ADD THIS FIELD
-    private boolean isVerified = false;
+    private String email;
 
-    //type-specific
-    private String hours;               // restaurant
-    private String description;  // restaurant/farmer
-    private String serviceArea;         // NGO
-    private String eligibilityNotes;    // NGO
+    private boolean verified = false;
+
+    private String hours;
+    private String description;
+    private String serviceArea;
+    private String eligibilityNotes;
 
     private Instant createdAt;
     private Instant updatedAt;
-
-    public void setEmail(@NotBlank(message = "email is required") @Size(max = 120, message = "email max 120 chars") String email) {
-    }
 }
