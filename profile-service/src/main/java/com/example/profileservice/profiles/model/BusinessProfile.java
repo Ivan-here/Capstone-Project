@@ -29,7 +29,7 @@ public class BusinessProfile {
 
     //type-specific
     private String hours;               // restaurant
-    private String pickupInstructions;  // restaurant/farmer
+    private String description;  // restaurant/farmer
     private String serviceArea;         // NGO
     private String eligibilityNotes;    // NGO
 
