@@ -79,6 +79,14 @@ public class ProfileServiceImpl implements ProfileService {
         // required registration fields (always set)
         p.setFirstName(req.firstName());
         p.setLastName(req.lastName());
+
+        if (p.getUsername() == null || p.getUsername().isBlank()) {
+            if (req.username() == null || req.username().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "username is required");
+            }
+            p.setUsername(req.username().trim());
+        }
+
         p.setEmail(req.email());
 
         // optional fields (set only if provided)
