@@ -100,7 +100,7 @@ public class ProfileServiceImpl implements ProfileService {
         b.setAddress(req.address());
 
         // store the description in one of your existing optional fields
-        b.setPickupInstructions(req.description()); // or eligibilityNotes
+        b.setDescription(req.description()); // or eligibilityNotes
 
         // Optional: persist email (requires adding field to BusinessProfile model)
         b.setEmail(req.email());
