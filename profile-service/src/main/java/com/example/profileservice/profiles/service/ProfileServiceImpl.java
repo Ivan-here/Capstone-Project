@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -67,21 +68,35 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public PersonalProfile upsertPersonal(String userId, PersonalProfileRequest req) {
-        PersonalProfile p = personalRepo.findByUserId(userId).orElseGet(PersonalProfile::new);
-
+        var p = personalRepo.findByUserId(userId).orElseGet(PersonalProfile::new);
         boolean isNew = (p.getId() == null);
+
         if (isNew) {
             p.setUserId(userId);
             p.setCreatedAt(Instant.now());
-            p.setAddresses(List.of());
         }
 
-        p.setFullName((req.firstName() + " " + req.lastName()).trim());
-        p.setPhone(req.contactNumber());
-        p.setUpdatedAt(Instant.now());
+        // required registration fields (always set)
+        p.setFirstName(req.firstName());
+        p.setLastName(req.lastName());
+        p.setEmail(req.email());
 
+        // optional fields (set only if provided)
+        if (req.role() != null) p.setRole(req.role());
+        if (req.location() != null) p.setLocation(req.location());
+        if (req.about() != null) p.setAbout(req.about());
+        if (req.phone() != null) p.setPhone(req.phone());
+
+        if (req.addresses() != null) p.setAddresses(req.addresses());
+        if (req.preferences() != null) p.setPreferences(req.preferences());
+        if (req.stats() != null) p.setStats(req.stats());
+        if (req.followingPeople() != null) p.setFollowingPeople(req.followingPeople());
+        if (req.ratings() != null) p.setRatings(req.ratings());
+
+        p.setUpdatedAt(Instant.now());
         return personalRepo.save(p);
     }
+
 
     @Override
     public BusinessProfile upsertBusiness(String userId, BusinessProfileRequest req) {
@@ -95,15 +110,17 @@ public class ProfileServiceImpl implements ProfileService {
             b.setVerified(false);
         }
 
+        // required fields (always set)
         b.setBusinessType(req.businessType());
-        b.setBusinessName(req.name());
+        b.setBusinessName(req.businessName());
         b.setAddress(req.address());
-
-        // store the description in one of your existing optional fields
-        b.setDescription(req.description()); // or eligibilityNotes
-
-        // Optional: persist email (requires adding field to BusinessProfile model)
         b.setEmail(req.email());
+
+        // optional
+        if (req.description() != null) b.setDescription(req.description());
+        if (req.hours() != null) b.setHours(req.hours());
+        if (req.serviceArea() != null) b.setServiceArea(req.serviceArea());
+        if (req.eligibilityNotes() != null) b.setEligibilityNotes(req.eligibilityNotes());
 
         b.setUpdatedAt(Instant.now());
 
