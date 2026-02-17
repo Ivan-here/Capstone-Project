@@ -12,7 +12,6 @@ public record RegisterRequest(
         String email,
 
         @NotBlank
-        @Size(min = 4, max = 50, message = "username must be between 4 and 50 characters")
         String username,
 
         @NotBlank
