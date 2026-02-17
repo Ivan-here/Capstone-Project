@@ -47,7 +47,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        // No Authorization header -> continue (will be rejected later by SecurityConfig)
         if (header == null || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -77,19 +76,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (rolesObj instanceof List<?> rolesList) {
                 for (Object r : rolesList) {
                     if (r != null) {
-                        // Spring Security expects "ROLE_*"
+
                         authorities.add(new SimpleGrantedAuthority("ROLE_" + r.toString()));
                     }
                 }
             }
 
-            // principal = userId (so authentication.getName() gives userId)
             var authToken = new UsernamePasswordAuthenticationToken(userId, null, authorities);
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authToken);
 
         } catch (Exception e) {
-            // invalid signature
             log.warn("JWT validation failed: {}", e.getMessage());
             SecurityContextHolder.clearContext();
         }
