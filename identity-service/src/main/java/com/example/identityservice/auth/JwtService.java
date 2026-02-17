@@ -32,12 +32,13 @@ public class JwtService {
         this.accessSeconds = accessSeconds;
     }
 
-    public String issueAccessToken(String userId, Collection<Role> roles) {
+    public String issueAccessToken(String userId, Collection<Role> roles, String displayName) {
         Instant now = Instant.now();
 
         return Jwts.builder()
                 .setSubject(userId)                 // sub = userId
                 .claim("roles", roles)              // roles claim
+                .claim("displayName", displayName)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(accessSeconds)))
                 .signWith(key, SignatureAlgorithm.HS256)
