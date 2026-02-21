@@ -23,6 +23,8 @@ public record PersonalProfileRequest(
 
         String username,
 
+        String displayName,
+
         // optional fields (can be null)
         String role,
         String location,

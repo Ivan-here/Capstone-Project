@@ -85,7 +85,8 @@ public class ProfileServiceImpl implements ProfileService {
         p.setEmail(req.email());
 
         // optional fields
-        if (req.role() != null) p.setRole(req.role());
+        if (req.role() != null) p.setRole("SHOPPER");
+        if (req.role() != null) p.setDisplayName(req.displayName());
         if (req.location() != null) p.setLocation(req.location());
         if (req.about() != null) p.setAbout(req.about());
         if (req.phone() != null) p.setPhone(req.phone());
@@ -113,7 +114,7 @@ public class ProfileServiceImpl implements ProfileService {
             b.setVerified(false);
         }
 
-        // required fields (always set)
+        // required fields
         b.setBusinessType(req.businessType());
         b.setBusinessName(req.businessName());
         b.setAddress(req.address());
@@ -146,8 +147,5 @@ public class ProfileServiceImpl implements ProfileService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Business profile not found"));
 
         businessRepo.delete(b);
-        log.info("Business profile deleted for userId={}", userId);
-
-        // Later: call identity-service to remove role(s)
     }
 }
