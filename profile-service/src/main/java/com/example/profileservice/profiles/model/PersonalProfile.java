@@ -22,10 +22,11 @@ public class PersonalProfile {
     // UI fields
     private String firstName;
     private String lastName;
-    private String role;       // "Shopper", "Farmer", etc (or whatever your UI shows)
     private String location;   // "Toronto, ON"
+    private String role;
     private String about;
     private String username;
+    private String displayName;
 
     private String phone;
     private String email;
@@ -33,7 +34,6 @@ public class PersonalProfile {
     private List<String> addresses = new ArrayList<>();
     private List<String> preferences = new ArrayList<>();
 
-    // optional UI sections (so UI doesn’t break)
     private Stats stats = new Stats();
     private List<FollowPerson> followingPeople = new ArrayList<>();
     private List<Rating> ratings = new ArrayList<>();
