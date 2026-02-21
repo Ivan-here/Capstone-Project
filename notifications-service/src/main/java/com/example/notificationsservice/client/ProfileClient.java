@@ -27,7 +27,7 @@ public class ProfileClient {
             // CHANGE THIS PATH if your profile-service uses a different route:
             // e.g. /profiles/{userId}, /profile/{userId}, /users/{userId}, etc.
             webClient.get()
-                    .uri(profileBaseUrl + "/profiles/" + userId)
+                    .uri(profileBaseUrl + "/internal/profiles/" + userId)
                     .retrieve()
                     .toBodilessEntity()
                     .block();
