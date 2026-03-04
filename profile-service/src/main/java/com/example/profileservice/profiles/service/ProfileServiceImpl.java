@@ -30,26 +30,21 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public void verifyUser(String userId) {
-        // 1. Find the business profile
+
         BusinessProfile profile = businessRepo.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Business profile not found for user: " + userId));
 
-        // 2. Mark as Verified in MongoDB
         profile.setVerified(true);
         businessRepo.save(profile);
         log.info("Updated BusinessProfile for user {}: isVerified=true", userId);
 
-        // 3. Map the BusinessType to the Identity Service ROLE String
-        // We use .name() to ensure it matches your "Role.java" enum exactly (e.g., "FARMER")
         String roleToAdd = switch (profile.getBusinessType()) {
-            case FARMER -> "FARMER";         // Matches Role.FARMER
-            case RESTAURANT -> "RESTAURANT"; // Matches Role.RESTAURANT
-            case NGO -> "NGO";               // Matches Role.NGO
-            // Shopper is default, so we usually don't upgrade TO it, only FROM it
+            case FARMER -> "FARMER";
+            case RESTAURANT -> "RESTAURANT";
+            case NGO -> "NGO";
             default -> throw new IllegalStateException("Unexpected business type: " + profile.getBusinessType());
         };
 
-        // 4. Call Identity Service
         try {
             roleUpgradeClient.addRoleToUser(userId, roleToAdd);
             log.info("Successfully requested role '{}' for user {}", roleToAdd, userId);
@@ -76,7 +71,7 @@ public class ProfileServiceImpl implements ProfileService {
             p.setCreatedAt(Instant.now());
         }
 
-        // required registration fields (always set)
+        // required registration fields
         p.setFirstName(req.firstName());
         p.setLastName(req.lastName());
 
@@ -89,8 +84,9 @@ public class ProfileServiceImpl implements ProfileService {
 
         p.setEmail(req.email());
 
-        // optional fields (set only if provided)
-        if (req.role() != null) p.setRole(req.role());
+        // optional fields
+        if (req.role() != null) p.setRole("SHOPPER");
+        if (req.role() != null) p.setDisplayName(req.displayName());
         if (req.location() != null) p.setLocation(req.location());
         if (req.about() != null) p.setAbout(req.about());
         if (req.phone() != null) p.setPhone(req.phone());
@@ -118,7 +114,7 @@ public class ProfileServiceImpl implements ProfileService {
             b.setVerified(false);
         }
 
-        // required fields (always set)
+        // required fields
         b.setBusinessType(req.businessType());
         b.setBusinessName(req.businessName());
         b.setAddress(req.address());
@@ -151,8 +147,5 @@ public class ProfileServiceImpl implements ProfileService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Business profile not found"));
 
         businessRepo.delete(b);
-        log.info("Business profile deleted for userId={}", userId);
-
-        // Later: call identity-service to remove role(s)
     }
 }

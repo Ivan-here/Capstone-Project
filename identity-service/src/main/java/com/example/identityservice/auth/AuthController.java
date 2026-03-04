@@ -31,7 +31,7 @@ public class AuthController {
                 req.displayName() // optional
         );
 
-        String token = jwtService.issueAccessToken(u.getId(), u.getRoles());
+        String token = jwtService.issueAccessToken(u.getId(), u.getRoles(), u.getDisplayName());
         log.info("Issued JWT on register userId={}", u.getId());
 
         return new AuthResponse(
@@ -53,7 +53,7 @@ public class AuthController {
 
         UserCredential u = userService.authenticate(req.login(), req.password());
 
-        String token = jwtService.issueAccessToken(u.getId(), u.getRoles());
+        String token = jwtService.issueAccessToken(u.getId(), u.getRoles(), u.getDisplayName());
         log.info("Issued JWT on login userId={}", u.getId());
 
         return new AuthResponse(
