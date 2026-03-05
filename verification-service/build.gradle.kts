@@ -36,6 +36,8 @@ dependencies {
 
     implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
 
+    implementation("com.cloudinary:cloudinary-http44:1.36.0")
+
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 
