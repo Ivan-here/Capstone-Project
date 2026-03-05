@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,10 +20,12 @@ public class VerificationController {
 
     private final VerificationService service;
 
-    @PostMapping("/submit")
+    @PostMapping(value = "/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Verification submit(@Valid @RequestBody SubmitRequestDTO dto) {
-        return service.submitRequest(dto);
+    public Verification submit(
+            @RequestPart("request") @Valid SubmitRequestDTO dto,
+            @RequestPart("document") MultipartFile document) { // Single file for verification
+        return service.submitRequest(dto, document);
     }
 
     @GetMapping("/admin/queue")

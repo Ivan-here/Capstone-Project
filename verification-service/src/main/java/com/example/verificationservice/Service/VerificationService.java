@@ -8,6 +8,7 @@ import com.example.verificationservice.Client.ProfileClient; // Import your new 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,20 +20,25 @@ public class VerificationService {
 
     private final VerificationRepository repository;
     private final ProfileClient profileClient; // <--- Inject the client
+    private final CloudinaryService cloudinaryService;
 
-    public Verification submitRequest(SubmitRequestDTO dto) {
+    public Verification submitRequest(SubmitRequestDTO dto, MultipartFile document) {
+
+        // 1. Upload the verification document
+        String uploadedUrl = cloudinaryService.uploadImage(document);
+
+        // 2. Build the verification record with the new URL
         Verification verification = Verification.builder()
                 .userId(dto.userId())
                 .type(dto.type())
-                .documentUrl(dto.documentUrl())
+                .documentUrl(uploadedUrl) // Saved from Cloudinary
                 .status("PENDING")
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        log.info("Saving new verification request for user {}", dto.userId());
+        log.info("Saving new verification request with document for user {}", dto.userId());
         return repository.save(verification);
     }
-
     public Verification reviewRequest(String id, ReviewRequestDTO dto) {
         Verification verification = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Request not found"));

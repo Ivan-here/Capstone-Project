@@ -44,6 +44,8 @@ dependencies {
 
     implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
 
+    // Cloudinary for Image Uploads
+    implementation("com.cloudinary:cloudinary-http44:1.36.0")
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 
