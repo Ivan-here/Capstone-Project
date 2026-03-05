@@ -33,7 +33,7 @@ public class Listing {
     private List<String> tags;
 
     // Add this field to your Listing.java class:
-    private String imageUrl;
+    private List<String> imageUrls;
 
     private BigDecimal price;
     private String unit;
