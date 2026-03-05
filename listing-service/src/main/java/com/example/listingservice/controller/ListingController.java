@@ -3,36 +3,41 @@ package com.example.listingservice.controller;
 import com.example.listingservice.dto.*;
 import com.example.listingservice.model.Listing;
 import com.example.listingservice.service.ListingService;
-import com.example.listingservice.dto.CreateListingDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/listings")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class ListingController {
 
     private final ListingService service;
 
-    // 1. Endpoint for FARMERS only
-    @PostMapping("/farm")
+    // 1. Endpoint for FARMERS only (Accepts Files now)
+    @PostMapping(value = "/farm", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Listing createFarmListing(@Valid @RequestBody CreateListingDTO dto) {
-        // We pass "FARMER" as the expected type
-        return service.createListing(dto, "FARMER");
+    public Listing createFarmListing(
+            @RequestPart("listing") @Valid CreateListingDTO dto,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        return service.createListing(dto, images, "FARMER");
     }
 
-    // 2. Endpoint for RESTAURANTS only
-    @PostMapping("/surplus")
+    // 2. Endpoint for RESTAURANTS only (Accepts Files now)
+    @PostMapping(value = "/surplus", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Listing createSurplusListing(@Valid @RequestBody CreateListingDTO dto) {
-        // We pass "RESTAURANT" as the expected type
-        return service.createListing(dto, "RESTAURANT");
+    public Listing createSurplusListing(
+            @RequestPart("listing") @Valid CreateListingDTO dto,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        return service.createListing(dto, images, "RESTAURANT");
     }
+
     // 3. GET /listings (Browse)
     @GetMapping
     @ResponseStatus(HttpStatus.OK)

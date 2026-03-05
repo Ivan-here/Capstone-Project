@@ -9,8 +9,8 @@ public record SubmitRequestDTO(
 
         @NotBlank(message = "Type is required")
         @Pattern(regexp = "FARMER|RESTAURANT|NGO", message = "Type must be FARMER, RESTAURANT, or NGO")
-        String type,
+        String type
 
-        @NotBlank(message = "Document URL cannot be empty")
-        String documentUrl
+        /*@NotBlank(message = "Document URL cannot be empty")
+        String documentUrl*/
 ) {}
