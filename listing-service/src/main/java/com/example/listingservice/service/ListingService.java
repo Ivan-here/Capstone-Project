@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.example.listingservice.client.ProfileClient;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -114,5 +115,47 @@ public class ListingService {
 
     public List<Listing> getAllListings() {
         return repository.findByStatus("ACTIVE");
+    }
+
+    public Listing updateFullListing(String id, FullUpdateListingDTO dto, List<MultipartFile> images) {
+        // 1. Find the existing listing
+        Listing existingListing = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Listing not found with id: " + id));
+
+        // 2. Update the text fields
+        existingListing.setTitle(dto.title());
+        existingListing.setPrice(BigDecimal.valueOf(dto.price()));
+        existingListing.setUnit(dto.unit());
+        existingListing.setDescription(dto.description());
+        existingListing.setQuantity(dto.quantity()); // <-- ADDED
+        existingListing.setExpiryDate(dto.expiryDate());
+
+        // 3. Handle Images Securely: Combine retained images + new uploads
+        List<String> finalImageUrls = new ArrayList<>();
+
+        // Step 3a: Keep the old Cloudinary URLs the user didn't delete
+        if (dto.retainedImages() != null && !dto.retainedImages().isEmpty()) {
+            finalImageUrls.addAll(dto.retainedImages());
+        }
+
+        // Step 3b: Upload any brand new files they added
+        if (images != null && !images.isEmpty()) {
+            log.info("New images provided for listing {}. Uploading to Cloudinary...", id);
+
+            List<String> newUrls = images.stream()
+                    .map(cloudinaryService::uploadImage)
+                    .toList();
+
+            finalImageUrls.addAll(newUrls);
+        }
+
+        // Step 3c: Set the combined list to the listing (even if it's empty)
+        existingListing.setImageUrls(finalImageUrls);
+
+        existingListing.setUpdatedAt(LocalDateTime.now());
+
+        // 4. Save and return
+        log.info("Successfully updated listing: {}", id);
+        return repository.save(existingListing);
     }
 }
