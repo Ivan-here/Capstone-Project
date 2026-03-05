@@ -39,4 +39,11 @@ public class VerificationController {
     public Verification review(@PathVariable String id, @RequestBody ReviewRequestDTO dto) {
         return service.reviewRequest(id,dto);
     }
+
+    // ADD THIS ENDPOINT
+    @GetMapping("/user/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public Verification getUserVerification(@PathVariable String userId) {
+        return service.getVerificationByUserId(userId);
+    }
 }
