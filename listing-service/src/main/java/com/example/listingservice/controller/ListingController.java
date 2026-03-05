@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity; // <-- IMPORT ADDED
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,10 +16,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/listings")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class ListingController {
 
     private final ListingService service;
+
+    // --- THE FIX: Intercepts RuntimeExceptions to send a clean text message instead of secure JSON ---
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
 
     // 1. Endpoint for FARMERS only (Accepts Files now)
     @PostMapping(value = "/farm", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -64,5 +70,16 @@ public class ListingController {
     @ResponseStatus(HttpStatus.OK)
     public Listing updateStock(@PathVariable String id, @Valid @RequestBody UpdateListingDTO dto) {
         return service.updateStock(id, dto);
+    }
+
+    // 7. PUT /listings/{id} (Update full listing details and images from Farmer Hub)
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.OK)
+    public Listing updateFullListing(
+            @PathVariable String id,
+            @RequestPart("listing") @Valid FullUpdateListingDTO dto,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+
+        return service.updateFullListing(id, dto, images);
     }
 }
