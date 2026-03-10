@@ -86,7 +86,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         // optional fields
         if (req.role() != null) p.setRole("SHOPPER");
-        if (req.role() != null) p.setDisplayName(req.displayName());
+        if (req.displayName() != null) p.setDisplayName(req.displayName());
         if (req.location() != null) p.setLocation(req.location());
         if (req.about() != null) p.setAbout(req.about());
         if (req.phone() != null) p.setPhone(req.phone());
@@ -147,5 +147,66 @@ public class ProfileServiceImpl implements ProfileService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Business profile not found"));
 
         businessRepo.delete(b);
+    }
+
+    @Override
+    public ProfileResponse getProfileByUserId(String userId) {
+        PersonalProfile personal = personalRepo.findByUserId(userId).orElse(null);
+        BusinessProfile business = businessRepo.findByUserId(userId).orElse(null);
+        return new ProfileResponse(userId, personal, business);
+    }
+
+    @Override
+    public PersonalProfile getPersonalByUserId(String userId) {
+        return personalRepo.findByUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personal profile not found"));
+    }
+
+    @Override
+    public BusinessProfile getBusinessByUserId(String userId) {
+        return businessRepo.findByUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Business profile not found"));
+    }
+
+    @Override
+    public List<PersonalProfile> getAllPersonalProfiles() {
+        return personalRepo.findAll();
+    }
+
+    @Override
+    public List<BusinessProfile> getAllBusinessProfiles() {
+        return businessRepo.findAll();
+    }
+
+    @Override
+    public List<BusinessProfile> getBusinessProfilesByType(BusinessType businessType) {
+        return businessRepo.findByBusinessType(businessType);
+    }
+
+    @Override
+    public List<BusinessProfile> getBusinessProfilesByVerified(boolean verified) {
+        return businessRepo.findByVerified(verified);
+    }
+
+    @Override
+    public BusinessProfile setBusinessVerified(String userId, boolean verified) {
+        BusinessProfile profile = businessRepo.findByUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Business profile not found"));
+
+        profile.setVerified(verified);
+        profile.setUpdatedAt(Instant.now());
+
+        BusinessProfile saved = businessRepo.save(profile);
+        log.info("Updated BusinessProfile for user {}: isVerified={}", userId, verified);
+
+        return saved;
+    }
+
+    @Override
+    public void deletePersonal(String userId) {
+        PersonalProfile p = personalRepo.findByUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personal profile not found"));
+
+        personalRepo.delete(p);
     }
 }

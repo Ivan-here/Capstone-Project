@@ -37,6 +37,29 @@ public class OrderReservationController {
         return orderService.placeOrder(order);
     }
 
+    @GetMapping("/orders/all")
+    public List<Order> getAllOrders() {
+        return orderService.getAllOrders();
+    }
+
+    @GetMapping("/orders/{id}")
+    public Order getOrderById(@PathVariable String id) {
+        return orderService.getOrderById(id);
+    }
+
+    @PutMapping("/orders/{id}")
+    public Order updateOrder(
+            @PathVariable String id,
+            @RequestBody Order order
+    ) {
+        return orderService.updateOrder(id, order);
+    }
+    @DeleteMapping("/orders/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteOrder(@PathVariable String id) {
+        orderService.deleteOrder(id);
+    }
+
     @PatchMapping("/orders/{id}/status")
     public Order updateOrderStatus(
             @PathVariable String id,
@@ -78,9 +101,28 @@ public class OrderReservationController {
         return orderService.getReservationsByNgo(ngoId);
     }
 
+    @GetMapping("/reservations/all")
+    public List<Reservation> getAllReservations() {
+        return orderService.getAllReservations();
+    }
+
     @GetMapping("/reservations/{id}")
     public Reservation getReservationById(@PathVariable String id) {
         return orderService.getReservationById(id);
+    }
+
+    @PutMapping("/reservations/{id}")
+    public Reservation updateReservation(
+            @PathVariable String id,
+            @RequestBody Reservation reservation
+    ) {
+        return orderService.updateReservation(id, reservation);
+    }
+
+    @DeleteMapping("/reservations/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteReservation(@PathVariable String id) {
+        orderService.deleteReservation(id);
     }
 
     // ✅ NEW: update reservation status

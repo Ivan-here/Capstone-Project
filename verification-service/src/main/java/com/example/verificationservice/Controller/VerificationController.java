@@ -46,4 +46,44 @@ public class VerificationController {
     public Verification getUserVerification(@PathVariable String userId) {
         return service.getVerificationByUserId(userId);
     }
+
+    @GetMapping("/admin")
+    @ResponseStatus(HttpStatus.OK)
+    public List<Verification> getAllRequests() {
+        return service.getAllRequests();
+    }
+
+    @GetMapping("/admin/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public Verification getRequestById(@PathVariable String id) {
+        return service.getRequestById(id);
+    }
+
+    @GetMapping("/admin/status/{status}")
+    @ResponseStatus(HttpStatus.OK)
+    public List<Verification> getRequestsByStatus(@PathVariable String status) {
+        return service.getRequestsByStatus(status);
+    }
+
+    @GetMapping("/admin/user/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public List<Verification> getRequestsByUser(@PathVariable String userId) {
+        return service.getRequestsByUserId(userId);
+    }
+
+    @PutMapping(value = "/admin/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.OK)
+    public Verification updateRequest(
+            @PathVariable String id,
+            @RequestPart("request") SubmitRequestDTO dto,
+            @RequestPart(value = "document", required = false) MultipartFile document) {
+
+        return service.updateRequest(id, dto, document);
+    }
+
+    @DeleteMapping("/admin/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteRequest(@PathVariable String id) {
+        service.deleteRequest(id);
+    }
 }
