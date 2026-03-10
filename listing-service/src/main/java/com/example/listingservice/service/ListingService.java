@@ -93,6 +93,8 @@ public class ListingService {
         return repository.findByStatus("ACTIVE");
     }
 
+    public List<Listing> getAllListings() {return repository.findAll();}
+
     public Listing closeListing(String id) {
         Listing listing = getListingById(id);
         listing.setStatus("CLOSED");
@@ -111,10 +113,6 @@ public class ListingService {
 
         listing.setUpdatedAt(LocalDateTime.now());
         return repository.save(listing);
-    }
-
-    public List<Listing> getAllListings() {
-        return repository.findByStatus("ACTIVE");
     }
 
     public Listing updateFullListing(String id, FullUpdateListingDTO dto, List<MultipartFile> images) {
@@ -157,5 +155,9 @@ public class ListingService {
         // 4. Save and return
         log.info("Successfully updated listing: {}", id);
         return repository.save(existingListing);
+    }
+    public void deleteListingById(String id){
+        log.info("Deleting listing with id: {}", id);
+        repository.deleteById(id);
     }
 }
