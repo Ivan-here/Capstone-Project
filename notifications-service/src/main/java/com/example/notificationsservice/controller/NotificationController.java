@@ -40,4 +40,54 @@ public class NotificationController {
     public List<Notification> list(@RequestParam String userId) {
         return repo.findByUserIdOrderByCreatedAtDesc(userId);
     }
+
+    @GetMapping("/{id}")
+    public Notification getById(@PathVariable String id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found: " + id));
+    }
+
+    @PutMapping("/{id}")
+    public Notification update(@PathVariable String id, @RequestBody Notification updated) {
+        Notification existing = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found: " + id));
+
+        if (updated.getUserId() == null || updated.getUserId().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
+        }
+
+        boolean exists = profileClient.userExists(updated.getUserId());
+        if (!exists) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + updated.getUserId());
+        }
+
+        existing.setUserId(updated.getUserId());
+        existing.setType(updated.getType());
+        existing.setMessage(updated.getMessage());
+        existing.setRead(updated.isRead());
+
+        if (updated.getCreatedAt() != null) {
+            existing.setCreatedAt(updated.getCreatedAt());
+        }
+
+        return repo.save(existing);
+    }
+
+    @PatchMapping("/{id}/read")
+    public Notification markRead(@PathVariable String id, @RequestParam boolean read) {
+        Notification existing = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found: " + id));
+
+        existing.setRead(read);
+        return repo.save(existing);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable String id) {
+        Notification existing = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found: " + id));
+
+        repo.delete(existing);
+    }
 }

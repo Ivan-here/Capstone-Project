@@ -78,4 +78,45 @@ public class VerificationService {
         // Return the most recent record instead of throwing an error
         return verifications.get(verifications.size() - 1);
     }
+
+    public List<Verification> getAllRequests() {
+        return repository.findAll();
+    }
+
+    public Verification getRequestById(String id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+    }
+
+    public List<Verification> getRequestsByStatus(String status) {
+        return repository.findByStatus(status);
+    }
+
+    public List<Verification> getRequestsByUserId(String userId) {
+        return repository.findAllByUserId(userId);
+    }
+
+    public Verification updateRequest(String id, SubmitRequestDTO dto, MultipartFile document) {
+        Verification verification = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        verification.setUserId(dto.userId());
+        verification.setType(dto.type());
+        verification.setUpdatedAt(LocalDateTime.now());
+
+        if (document != null && !document.isEmpty()) {
+            String uploadedUrl = cloudinaryService.uploadImage(document);
+            verification.setDocumentUrl(uploadedUrl);
+        }
+
+        return repository.save(verification);
+    }
+
+    public void deleteRequest(String id) {
+        Verification verification = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        repository.delete(verification);
+        log.info("Deleted verification request {}", id);
+    }
 }

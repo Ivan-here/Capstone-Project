@@ -51,6 +51,13 @@ public class ListingController {
         return service.getAllActiveListings();
     }
 
+    // GET ALL FOR ADMIN PANEL
+    @GetMapping("/admin")
+    @ResponseStatus(HttpStatus.OK)
+    public List<Listing> getAllAdminListings() {
+        return service.getAllListings();
+    }
+
     // 4. GET /listings/{id} (View Details)
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
@@ -81,5 +88,10 @@ public class ListingController {
             @RequestPart(value = "images", required = false) List<MultipartFile> images) {
 
         return service.updateFullListing(id, dto, images);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteListingById(@PathVariable String id){
+        service.deleteListingById(id);
     }
 }

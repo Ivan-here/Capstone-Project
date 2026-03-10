@@ -88,6 +88,37 @@ public class OrderReservationService {
         return orderRepository.save(order);
     }
 
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
+    }
+
+    public Order updateOrder(String orderId, Order updatedOrder) {
+        Order existing = getOrderById(orderId);
+
+        existing.setShopperId(updatedOrder.getShopperId());
+        existing.setRestaurantId(updatedOrder.getRestaurantId());
+
+        if (updatedOrder.getItems() != null) {
+            existing.setItems(updatedOrder.getItems());
+        }
+
+        if (updatedOrder.getStatus() != null) {
+            existing.updateStatus(updatedOrder.getStatus(), "system");
+        }
+
+        return orderRepository.save(existing);
+    }
+
+    public void deleteOrder(String orderId) {
+        Order existing = getOrderById(orderId);
+        orderRepository.delete(existing);
+    }
+
+    public Order getOrderById(String orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+    }
+
     public List<Order> getOrdersByShopper(String shopperId) {
         return orderRepository.findByShopperId(shopperId);
     }
@@ -134,9 +165,35 @@ public class OrderReservationService {
         return reservationRepository.findByNgoId(ngoId);
     }
 
+    public List<Reservation> getAllReservations() {
+        return reservationRepository.findAll();
+    }
+
     public Reservation getReservationById(String id) {
         return reservationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
+    }
+
+    public Reservation updateReservation(String id, Reservation updatedReservation) {
+        Reservation existing = getReservationById(id);
+
+        existing.setNgoId(updatedReservation.getNgoId());
+        existing.setSurplusItemId(updatedReservation.getSurplusItemId());
+
+        if (updatedReservation.getStatus() != null && !updatedReservation.getStatus().isBlank()) {
+            if ("CANCELLED".equalsIgnoreCase(updatedReservation.getStatus())
+                    && !"CANCELLED".equalsIgnoreCase(existing.getStatus())) {
+                var listing = listingClient.getListing(existing.getSurplusItemId());
+                if (listing != null) {
+                    int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
+                    listingClient.updateListingQuantity(existing.getSurplusItemId(), currentQty + 1);
+                }
+            }
+
+            existing.setStatus(updatedReservation.getStatus());
+        }
+
+        return reservationRepository.save(existing);
     }
 
     /**
@@ -157,5 +214,19 @@ public class OrderReservationService {
 
         reservation.setStatus(status);
         return reservationRepository.save(reservation);
+    }
+
+    public void deleteReservation(String id) {
+        Reservation existing = getReservationById(id);
+
+        if (!"CANCELLED".equalsIgnoreCase(existing.getStatus())) {
+            var listing = listingClient.getListing(existing.getSurplusItemId());
+            if (listing != null) {
+                int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
+                listingClient.updateListingQuantity(existing.getSurplusItemId(), currentQty + 1);
+            }
+        }
+
+        reservationRepository.delete(existing);
     }
 }
