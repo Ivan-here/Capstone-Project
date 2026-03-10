@@ -5,4 +5,5 @@
 # identity service running on 8082
 # api-gateway running on 9000
 # order service running on 8086
+# admin service running on 8087
 

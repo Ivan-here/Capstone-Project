@@ -42,4 +42,23 @@ public class InternalUserController {
                 "roles", updated.getRoles()
         );
     }
+
+    @DeleteMapping("/{userId}/roles:remove")
+    public Map<String, Object> removeRole(
+            @PathVariable String userId,
+            @RequestHeader(name = "X-Internal-Secret", required = false) String secret,
+            @Valid @RequestBody AddRoleRequest req
+    ) {
+        if (secret == null || !secret.equals(expectedSecret)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+
+        UserCredential updated = userService.removeRole(userId, req.role());
+        log.info("Internal role remove userId={} role={}", userId, req.role());
+
+        return Map.of(
+                "userId", updated.getId(),
+                "roles", updated.getRoles()
+        );
+    }
 }
