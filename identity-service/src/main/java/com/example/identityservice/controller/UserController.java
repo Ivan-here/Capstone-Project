@@ -1,13 +1,9 @@
 package com.example.identityservice.controller;
 
-import com.example.identityservice.auth.dto.AuthResponse;
-import com.example.identityservice.auth.dto.LoginRequest;
-import com.example.identityservice.auth.dto.RegisterRequest;
 import com.example.identityservice.users.Role;
 import com.example.identityservice.users.UserCredential;
 import com.example.identityservice.users.UserService;
 import com.example.identityservice.users.UserStatus;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

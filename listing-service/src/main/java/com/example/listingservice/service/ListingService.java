@@ -1,6 +1,8 @@
 package com.example.listingservice.service;
 
-import com.example.listingservice.dto.*;
+import com.example.listingservice.dto.CreateListingDTO;
+import com.example.listingservice.dto.FullUpdateListingDTO;
+import com.example.listingservice.dto.UpdateListingDTO;
 import com.example.listingservice.model.Listing;
 import com.example.listingservice.repository.ListingRepository;
 import lombok.RequiredArgsConstructor;
