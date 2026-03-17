@@ -44,7 +44,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_IDENTITY}"
-      JWT_SECRET: "${JWT_SECRET}"
+      SECURITY_JWT_SECRET: "${JWT_SECRET}"
       INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
 
   profile-service:
@@ -97,6 +97,30 @@ services:
       - verification-service
       - order-reservation-service
       - notifications-service
+
+  admin-service:
+    build:
+      context: ./admin-service
+    container_name: admin_service
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_ADMIN}"
+      SECURITY_JWT_SECRET: "${JWT_SECRET}"
+      CLIENTS_IDENTITYBASEURL: "http://identity-service:8082"
+      CLIENTS_PROFILEBASEURL: "http://profile-service:8081"
+      CLIENTS_LISTINGBASEURL: "http://listing-service:8084"
+      CLIENTS_NOTIFICATIONSBASEURL: "http://notifications-service:8085"
+      CLIENTS_ORDERRESERVATIONBASEURL: "http://order-reservation-service:8086"
+      CLIENTS_VERIFICATIONBASEURL: "http://verification-service:8083"
+    depends_on:
+      - identity-service
+      - profile-service
+      - listing-service
+      - notifications-service
+      - order-reservation-service
+      - verification-service
 
 volumes:
   mongo_data:

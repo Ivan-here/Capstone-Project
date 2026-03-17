@@ -1,12 +1,7 @@
 package com.example.adminservice.service;
 
 import com.example.adminservice.clients.IdentityServiceClient;
-import com.example.adminservice.dtos.user.UpdateUserDetailsRequest;
-import com.example.adminservice.dtos.user.UpdateUserRoleRequest;
-import com.example.adminservice.dtos.user.UpdateUserStatusRequest;
-import com.example.identityservice.users.Role;
-import com.example.identityservice.users.UserCredential;
-import com.example.identityservice.users.UserStatus;
+import com.example.adminservice.dtos.user.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -45,17 +40,17 @@ public class AdminUserService {
         );
     }
 
-    public UserCredential addRole(String id, UpdateUserRoleRequest request) {
-        return identityServiceClient.addRole(
+    public UpdateUserRoleResponse addRole(String id, UpdateUserRoleRequest request) {
+        return identityServiceClient.addRoleInternal(
                 id,
-                Role.valueOf(request.getRole().toUpperCase())
+                new AddRoleRequest(Role.valueOf(request.getRole().toUpperCase()))
         );
     }
 
-    public UserCredential removeRole(String id, UpdateUserRoleRequest request) {
-        return identityServiceClient.removeRole(
+    public UpdateUserRoleResponse removeRole(String id, UpdateUserRoleRequest request) {
+        return identityServiceClient.removeRoleInternal(
                 id,
-                Role.valueOf(request.getRole().toUpperCase())
+                new AddRoleRequest(Role.valueOf(request.getRole().toUpperCase()))
         );
     }
 

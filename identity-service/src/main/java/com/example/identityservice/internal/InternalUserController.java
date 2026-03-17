@@ -6,10 +6,7 @@ import com.example.identityservice.users.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
@@ -21,19 +18,11 @@ public class InternalUserController {
 
     private final UserService userService;
 
-    @Value("${internal.sharedSecret}")
-    private String expectedSecret;
-
     @PostMapping("/{userId}/roles:add")
     public Map<String, Object> addRole(
             @PathVariable String userId,
-            @RequestHeader(name = "X-Internal-Secret", required = false) String secret,
             @Valid @RequestBody AddRoleRequest req
     ) {
-        if (secret == null || !secret.equals(expectedSecret)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
-        }
-
         UserCredential updated = userService.addRole(userId, req.role());
         log.info("Internal role add userId={} role={}", userId, req.role());
 
@@ -46,13 +35,8 @@ public class InternalUserController {
     @DeleteMapping("/{userId}/roles:remove")
     public Map<String, Object> removeRole(
             @PathVariable String userId,
-            @RequestHeader(name = "X-Internal-Secret", required = false) String secret,
             @Valid @RequestBody AddRoleRequest req
     ) {
-        if (secret == null || !secret.equals(expectedSecret)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
-        }
-
         UserCredential updated = userService.removeRole(userId, req.role());
         log.info("Internal role remove userId={} role={}", userId, req.role());
 

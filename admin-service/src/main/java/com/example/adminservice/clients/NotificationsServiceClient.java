@@ -2,7 +2,7 @@ package com.example.adminservice.clients;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
-import com.example.notificationsservice.model.Notification;
+import com.example.adminservice.dtos.notification.Notification;
 
 import java.util.List;
 
