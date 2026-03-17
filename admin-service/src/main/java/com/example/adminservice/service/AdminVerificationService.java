@@ -2,8 +2,8 @@ package com.example.adminservice.service;
 
 import com.example.adminservice.clients.VerificationServiceClient;
 import com.example.adminservice.dtos.verification.ReviewVerificationRequest;
-import com.example.verificationservice.DTO.ReviewRequestDTO;
-import com.example.verificationservice.Model.Verification;
+import com.example.adminservice.dtos.verification.ReviewRequestDTO;
+import com.example.adminservice.dtos.verification.Verification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -1,10 +1,10 @@
 package com.example.adminservice.service;
 
 import com.example.adminservice.clients.ProfileServiceClient;
-import com.example.profileservice.profiles.dto.ProfileResponse;
-import com.example.profileservice.profiles.model.BusinessProfile;
-import com.example.profileservice.profiles.model.BusinessType;
-import com.example.profileservice.profiles.model.PersonalProfile;
+import com.example.adminservice.dtos.profile.ProfileResponse;
+import com.example.adminservice.dtos.profile.BusinessProfile;
+import com.example.adminservice.dtos.profile.BusinessType;
+import com.example.adminservice.dtos.profile.PersonalProfile;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
