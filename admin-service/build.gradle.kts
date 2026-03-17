@@ -23,6 +23,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
+    implementation("io.github.openfeign:feign-okhttp")
+    implementation("com.squareup.okhttp3:okhttp")
 
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
