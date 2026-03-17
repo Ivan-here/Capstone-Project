@@ -1,7 +1,7 @@
 package com.example.adminservice.service;
 
 import com.example.adminservice.clients.ListingServiceClient;
-import com.example.listingservice.model.Listing;
+import com.example.adminservice.dtos.listing.Listing;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

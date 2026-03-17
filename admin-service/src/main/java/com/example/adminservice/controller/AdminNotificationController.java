@@ -1,7 +1,7 @@
 package com.example.adminservice.controller;
 
 import com.example.adminservice.dtos.notification.CreateNotificationRequest;
-import com.example.notificationsservice.model.Notification;
+import com.example.adminservice.dtos.notification.Notification;
 import com.example.adminservice.service.AdminNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

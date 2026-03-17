@@ -1,7 +1,7 @@
 package com.example.adminservice.clients;
 
-import com.example.verificationservice.DTO.ReviewRequestDTO;
-import com.example.verificationservice.Model.Verification;
+import com.example.adminservice.dtos.verification.ReviewRequestDTO;
+import com.example.adminservice.dtos.verification.Verification;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
