@@ -2,7 +2,7 @@ package com.example.adminservice.service;
 
 import com.example.adminservice.clients.NotificationsServiceClient;
 import com.example.adminservice.dtos.notification.CreateNotificationRequest;
-import com.example.notificationsservice.model.Notification;
+import com.example.adminservice.dtos.notification.Notification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

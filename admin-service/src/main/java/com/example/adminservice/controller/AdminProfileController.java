@@ -1,8 +1,8 @@
 package com.example.adminservice.controller;
 
-import com.example.profileservice.profiles.dto.ProfileResponse;
-import com.example.profileservice.profiles.model.BusinessProfile;
-import com.example.profileservice.profiles.model.PersonalProfile;
+import com.example.adminservice.dtos.profile.ProfileResponse;
+import com.example.adminservice.dtos.profile.BusinessProfile;
+import com.example.adminservice.dtos.profile.PersonalProfile;
 import com.example.adminservice.service.AdminProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

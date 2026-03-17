@@ -1,7 +1,7 @@
 package com.example.adminservice.clients;
 
-import com.example.listingservice.dto.UpdateListingDTO;
-import com.example.listingservice.model.Listing;
+import com.example.adminservice.dtos.listing.UpdateListingDTO;
+import com.example.adminservice.dtos.listing.Listing;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
