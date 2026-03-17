@@ -30,6 +30,14 @@ public class AdminNotificationController {
         return adminNotificationService.getNotificationById(id);
     }
 
+    @PutMapping("/{id}")
+    public Notification updateNotification(
+            @PathVariable String id,
+            @RequestBody Notification notification
+    ) {
+        return adminNotificationService.updateNotification(id, notification);
+    }
+
     @PatchMapping("/{id}/read")
     public Notification markRead(
             @PathVariable String id,
