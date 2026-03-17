@@ -1,6 +1,6 @@
 package com.example.adminservice.controller;
 
-import com.example.listingservice.model.Listing;
+import com.example.adminservice.dtos.listing.Listing;
 import com.example.adminservice.service.AdminListingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

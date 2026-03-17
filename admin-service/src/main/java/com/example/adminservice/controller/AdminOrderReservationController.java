@@ -1,7 +1,7 @@
 package com.example.adminservice.controller;
 
-import com.locally.orders.order_reservationservice.model.Order;
-import com.locally.orders.order_reservationservice.model.Reservation;
+import com.example.adminservice.dtos.orderReservation.Order;
+import com.example.adminservice.dtos.orderReservation.Reservation;
 import com.example.adminservice.service.AdminOrderReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
