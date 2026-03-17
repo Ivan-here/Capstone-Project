@@ -18,35 +18,3 @@ public class RoleUpgradeClient {
         identityClient.addRole(userId, Map.of("role", role));
     }
 }
-//public class RoleUpgradeClient {
-//
-//    private final WebClient webClient;
-//    private final String internalSecret;
-//    private final String identityBaseUrl;
-//
-//    public RoleUpgradeClient(
-//            WebClient.Builder builder,
-//            @Value("${clients.identityBaseUrl}") String identityBaseUrl,
-//            @Value("${internal.sharedSecret}") String internalSecret
-//    ) {
-//        this.webClient = builder.build();
-//        this.identityBaseUrl = identityBaseUrl;
-//        this.internalSecret = internalSecret;
-//    }
-//
-//    public void addRoleToUser(String userId, String role) {
-//        String url = identityBaseUrl + "/internal/users/" + userId + "/roles:add";
-//
-//        log.info("Requesting role upgrade: userId={}, role={}", userId, role);
-//
-//        webClient.post()
-//                .uri(url)
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .header("X-Internal-Secret", internalSecret)
-//                .bodyValue(Map.of("role", role))
-//                .retrieve()
-//                .toBodilessEntity()
-//                .doOnError(e -> log.warn("Role upgrade call failed: {}", e.getMessage()))
-//                .block();
-//    }
-//}

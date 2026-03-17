@@ -1,18 +1,15 @@
 package com.example.adminservice.clients;
 
-import com.example.identityservice.users.UserStatus;
+import com.example.adminservice.dtos.user.*;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
-import com.example.identityservice.users.UserCredential;
-import com.example.identityservice.users.Role;
-import com.example.identityservice.internal.dto.AddRoleRequest;
 
 import java.util.List;
 import java.util.Map;
 
 @FeignClient(
         name = "identityClient",
-        url = "${client.identityBaseUrl}"
+        url = "${clients.identityBaseUrl}"
 )
 public interface IdentityServiceClient {
     @GetMapping("/users")
@@ -47,34 +44,20 @@ public interface IdentityServiceClient {
             @RequestParam("status") UserStatus status
     );
 
-    @PostMapping("/users/{id}/roles")
-    UserCredential addRole(
-            @PathVariable("id") String id,
-            @RequestParam("role") Role role
-    );
-
-    @DeleteMapping("/users/{id}/roles")
-    UserCredential removeRole(
-            @PathVariable("id") String id,
-            @RequestParam("role") Role role
-    );
-
     @DeleteMapping("/users/{id}")
     void deleteUser(@PathVariable("id") String id);
 
     // ---------------- INTERNAL ----------------
 
     @PostMapping("/internal/users/{userId}/roles:add")
-    Map<String, Object> addRoleInternal(
+    UpdateUserRoleResponse addRoleInternal(
             @PathVariable("userId") String userId,
-            @RequestHeader("X-Internal-Secret") String secret,
             @RequestBody AddRoleRequest request
     );
 
     @DeleteMapping("/internal/users/{userId}/roles:remove")
-    Map<String, Object> removeRoleInternal(
+    UpdateUserRoleResponse removeRoleInternal(
             @PathVariable("userId") String userId,
-            @RequestHeader("X-Internal-Secret") String secret,
             @RequestBody AddRoleRequest request
     );
 }

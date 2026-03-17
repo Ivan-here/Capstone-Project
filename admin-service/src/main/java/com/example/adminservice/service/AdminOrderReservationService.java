@@ -1,9 +1,9 @@
 package com.example.adminservice.service;
 
 import com.example.adminservice.clients.OrderReservationServiceClient;
-import com.locally.orders.order_reservationservice.model.Order;
-import com.locally.orders.order_reservationservice.model.OrderStatus;
-import com.locally.orders.order_reservationservice.model.Reservation;
+import com.example.adminservice.dtos.orderReservation.Order;
+import com.example.adminservice.dtos.orderReservation.OrderStatus;
+import com.example.adminservice.dtos.orderReservation.Reservation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

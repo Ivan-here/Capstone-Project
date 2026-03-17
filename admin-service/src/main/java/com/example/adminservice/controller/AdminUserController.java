@@ -1,9 +1,6 @@
 package com.example.adminservice.controller;
 
-import com.example.adminservice.dtos.user.UpdateUserDetailsRequest;
-import com.example.adminservice.dtos.user.UpdateUserRoleRequest;
-import com.example.adminservice.dtos.user.UpdateUserStatusRequest;
-import com.example.identityservice.users.UserCredential;
+import com.example.adminservice.dtos.user.*;
 import com.example.adminservice.service.AdminUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -51,7 +48,7 @@ public class AdminUserController {
     }
 
     @PostMapping("/{id}/roles")
-    public UserCredential addRole(
+    public UpdateUserRoleResponse addRole(
             @PathVariable String id,
             @RequestBody UpdateUserRoleRequest request
     ) {
@@ -59,7 +56,7 @@ public class AdminUserController {
     }
 
     @DeleteMapping("/{id}/roles")
-    public UserCredential removeRole(
+    public UpdateUserRoleResponse removeRole(
             @PathVariable String id,
             @RequestBody UpdateUserRoleRequest request
     ) {

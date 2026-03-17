@@ -2,7 +2,7 @@ package com.example.adminservice.controller;
 
 import com.example.adminservice.dtos.verification.ReviewVerificationRequest;
 import com.example.adminservice.service.AdminVerificationService;
-import com.example.verificationservice.Model.Verification;
+import com.example.adminservice.dtos.verification.Verification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

@@ -1,9 +1,9 @@
 package com.example.adminservice.clients;
 
-import com.example.profileservice.profiles.dto.ProfileResponse;
-import com.example.profileservice.profiles.model.BusinessProfile;
-import com.example.profileservice.profiles.model.BusinessType;
-import com.example.profileservice.profiles.model.PersonalProfile;
+import com.example.adminservice.dtos.profile.ProfileResponse;
+import com.example.adminservice.dtos.profile.BusinessProfile;
+import com.example.adminservice.dtos.profile.BusinessType;
+import com.example.adminservice.dtos.profile.PersonalProfile;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

@@ -1,10 +1,10 @@
 package com.example.adminservice.clients;
 
-import com.locally.orders.order_reservationservice.model.OrderStatus;
-import com.locally.orders.order_reservationservice.model.Reservation;
+import com.example.adminservice.dtos.orderReservation.OrderStatus;
+import com.example.adminservice.dtos.orderReservation.Reservation;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
-import com.locally.orders.order_reservationservice.model.Order;
+import com.example.adminservice.dtos.orderReservation.Order;
 
 import java.util.List;
 
