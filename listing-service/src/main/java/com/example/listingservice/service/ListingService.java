@@ -61,6 +61,12 @@ public class ListingService {
             }
         }
 
+        // Set initial visibility logic
+        String initialVisibility = "PUBLIC";
+        if ("SURPLUS_FOOD".equalsIgnoreCase(dto.type())) {
+            initialVisibility = "NGO_ONLY";
+        }
+
         // E. Create Listing
         List<String> tags = dto.tags() != null ? dto.tags() : new ArrayList<>();
 
@@ -79,6 +85,7 @@ public class ListingService {
                 .expiryDate(dto.expiryDate())
                 .imageUrls(uploadedUrls) // <--- Now saving the list of URLs!
                 .status("ACTIVE")
+                .visibility(initialVisibility)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
