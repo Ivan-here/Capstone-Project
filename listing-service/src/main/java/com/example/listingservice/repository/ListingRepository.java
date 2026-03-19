@@ -2,6 +2,8 @@ package com.example.listingservice.repository;
 
 import com.example.listingservice.model.Listing;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+
 import java.util.List;
 
 public interface ListingRepository extends MongoRepository<Listing, String> {
@@ -14,4 +16,9 @@ public interface ListingRepository extends MongoRepository<Listing, String> {
 
     // Find all active listings (ignoring expired ones)
     List<Listing> findByStatus(String status);
+
+    // Add this to find items that need a visibility check
+
+    @Query("{ '$or': [ { 'visibility': ?0 }, { 'visibility': { $exists: false } }, { 'visibility': null } ] }")
+    List<Listing> findByVisibility(String visibility);
 }
