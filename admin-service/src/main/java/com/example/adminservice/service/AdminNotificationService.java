@@ -34,6 +34,10 @@ public class AdminNotificationService {
         return notificationsServiceClient.getById(id);
     }
 
+    public Notification updateNotification(String id, Notification notification) {
+        return notificationsServiceClient.update(id, notification);
+    }
+
     public Notification markRead(String id, boolean read) {
         return notificationsServiceClient.markRead(id, read);
     }

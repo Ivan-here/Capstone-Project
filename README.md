@@ -6,4 +6,4 @@
 # api-gateway running on 9000
 # order service running on 8086
 # admin service running on 8087
-
+# community service running on 8088
