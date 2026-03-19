@@ -82,6 +82,21 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_NOTIFICATIONS}"
+      SERVICES_IDENTITY_BASE_URL: "http://identity-service:8082"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
+
+  community-service:
+    build: ./community-service
+    container_name: community_service
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_COMMUNITY}"
+      SERVICES_IDENTITY_BASE_URL: "http://identity-service:8082"
+      SERVICES_NOTIFICATIONS_BASE_URL: "http://notifications-service:8085"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
 
   api-gateway:
     build:
@@ -97,6 +112,7 @@ services:
       - verification-service
       - order-reservation-service
       - notifications-service
+      - community-service
 
   admin-service:
     build:
