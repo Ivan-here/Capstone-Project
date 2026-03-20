@@ -63,4 +63,11 @@ public class ProfileController {
         log.info("DELETE /profiles/me/business userId={}", uid);
         profileService.deleteBusiness(uid);
     }
+
+    // Add this to ProfileController.java
+    @GetMapping("/{userId}")
+    public ProfileResponse getProfileById(@PathVariable String userId) {
+        log.info("GET /profiles/{}", userId);
+        return profileService.getMe(userId);
+    }
 }
