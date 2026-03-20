@@ -98,6 +98,17 @@ services:
       SERVICES_NOTIFICATIONS_BASE_URL: "http://notifications-service:8085"
       INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
 
+  review-service:
+    build: ./review-service
+    container_name: review_service
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_REVIEW}"
+      CLIENTS_ORDERRESERVATIONBASEURL: "http://order-reservation-service:8086"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
+
   api-gateway:
     build:
       context: ./api-gateway
@@ -113,6 +124,7 @@ services:
       - order-reservation-service
       - notifications-service
       - community-service
+      - review-service
 
   admin-service:
     build:
@@ -137,6 +149,8 @@ services:
       - notifications-service
       - order-reservation-service
       - verification-service
+      - review-service
+      - community-service
 
 volumes:
   mongo_data:
