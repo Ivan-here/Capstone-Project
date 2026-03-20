@@ -28,6 +28,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/internal/**").permitAll() // This covers both verify (POST) and get (GET)
                         // everything else must be authenticated
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/profiles/{userId}").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
