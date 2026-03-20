@@ -46,4 +46,6 @@ public class Listing {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    // Add this field to your existing Listing class
+    private String visibility; // "NGO_ONLY" or "PUBLIC"
 }
