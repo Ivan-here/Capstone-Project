@@ -133,4 +133,37 @@ public class OrderReservationController {
     ) {
         return orderService.updateReservationStatus(id, status);
     }
+
+
+    // ===================== INTERNAL (For Review Service) =====================
+
+    @GetMapping("/internal/orders/{orderId}/verify")
+    public boolean verifyOrderCompletion(
+            @PathVariable String orderId,
+            @RequestParam String userId) {
+
+        // 1. Try to find it as a standard Order
+        try {
+            Order order = orderService.getOrderById(orderId);
+            if (order != null && "COMPLETED".equalsIgnoreCase(order.getStatus().name())) {
+                // Return true if the user is either the Shopper or the Restaurant
+                return userId.equals(order.getShopperId()) || userId.equals(order.getRestaurantId());
+            }
+        } catch (Exception e) {
+            // Ignore exception if not found, we will check reservations next
+        }
+
+        // 2. Try to find it as a Reservation (NGO)
+        try {
+            Reservation res = orderService.getReservationById(orderId);
+            if (res != null && "COMPLETED".equalsIgnoreCase(res.getStatus())) {
+                // Return true if the user is either the NGO or the Restaurant
+                return userId.equals(res.getNgoId()) || userId.equals(res.getRestaurantId());
+            }
+        } catch (Exception e) {
+            // Ignore exception
+        }
+
+        return false;
+    }
 }

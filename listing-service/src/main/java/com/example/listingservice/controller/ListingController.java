@@ -5,6 +5,7 @@ import com.example.listingservice.dto.FullUpdateListingDTO;
 import com.example.listingservice.dto.UpdateListingDTO;
 import com.example.listingservice.model.Listing;
 import com.example.listingservice.service.ListingService;
+import com.example.listingservice.repository.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,8 @@ import java.util.List;
 public class ListingController {
 
     private final ListingService service;
+    private final ListingRepository repository;
+
 
     // --- THE FIX: Intercepts RuntimeExceptions to send a clean text message instead of secure JSON ---
     @ExceptionHandler(RuntimeException.class)
@@ -49,10 +52,15 @@ public class ListingController {
     // 3. GET /listings (Browse)
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<Listing> getAllListings() {
-        return service.getAllActiveListings();
+    public List<Listing> getAllListings(@RequestParam(required = false, defaultValue = "CITIZEN") String role) {
+        if ("NGO".equalsIgnoreCase(role)) {
+            // NGOs see everything (Private Donations + Public Products)
+            return service.getAllActiveListings();
+        } else {
+            // Citizens/Public see only what is marked PUBLIC
+            return repository.findByVisibility("PUBLIC");
+        }
     }
-
     // GET ALL FOR ADMIN PANEL
     @GetMapping("/admin")
     @ResponseStatus(HttpStatus.OK)
