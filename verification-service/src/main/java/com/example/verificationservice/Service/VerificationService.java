@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,31 +38,37 @@ public class VerificationService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        List<Verification> existing = repository.findAllByUserId(dto.userId());
+        boolean hasPending = existing.stream()
+                .anyMatch(v -> "PENDING".equalsIgnoreCase(v.getStatus()));
+
+        if (hasPending) {
+            throw new RuntimeException("User already has a pending verification request");
+        }
+
         log.info("Saving new verification request with document for user {}", dto.userId());
         return repository.save(verification);
     }
+
     public Verification reviewRequest(String id, ReviewRequestDTO dto) {
         Verification verification = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Request not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+
+        String oldStatus = verification.getStatus();
+        boolean approvingNow =
+                !"APPROVED".equalsIgnoreCase(oldStatus)
+                        && "APPROVED".equalsIgnoreCase(dto.status());
+
+        if (approvingNow) {
+            log.info("Verification approved. Notifying Profile Service for user {}", verification.getUserId());
+            profileClient.verifyProfile(verification.getUserId());
+        }
 
         verification.setStatus(dto.status());
         verification.setAdminNotes(dto.adminNotes());
         verification.setUpdatedAt(LocalDateTime.now());
 
-        Verification saved = repository.save(verification);
-
-        // THE NEW LOGIC: Notify Profile Service if Approved
-        if ("APPROVED".equalsIgnoreCase(dto.status())) {
-            try {
-                log.info("Verification approved. Notifying Profile Service for user {}", verification.getUserId());
-                profileClient.verifyProfile(verification.getUserId());
-            } catch (Exception e) {
-                log.error("Failed to notify Profile Service: " + e.getMessage());
-                // We catch the error so the verification itself doesn't fail just because the notification failed
-            }
-        }
-
-        return saved;
+        return repository.save(verification);
     }
 
     public List<Verification> getPendingRequests() {
