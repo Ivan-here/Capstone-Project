@@ -34,6 +34,23 @@ public class Order {
     @Builder.Default // Ensures list is not null
     private List<StatusHistoryItem> history = new ArrayList<>();
 
+    // ===== PAYMENT FIELDS =====
+    private String currency; // ex: cad
+
+    // store cents, not doubles
+    private Long grossAmountCents;
+    private Long platformFeeCents;
+    private Long sellerAmountCents;
+
+    private PaymentStatus paymentStatus;
+    private String stripePaymentIntentId;
+    private String stripeClientSecret;
+    private String stripeConnectedAccountId;
+
+    // helps avoid reducing stock twice if webhook retries
+    @Builder.Default
+    private boolean stockDeducted = false;
+
     // --- HELPER: Updates status AND history at the same time ---
     public void updateStatus(OrderStatus newStatus, String changedBy) {
         if (this.history == null) this.history = new ArrayList<>();
