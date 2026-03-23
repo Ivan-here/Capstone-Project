@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -29,29 +30,38 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public void verifyUser(String userId) {
-
         BusinessProfile profile = businessRepo.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Business profile not found for user: " + userId));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Business profile not found for user: " + userId
+                ));
 
-        profile.setVerified(true);
-        businessRepo.save(profile);
-        log.info("Updated BusinessProfile for user {}: isVerified=true", userId);
+        if (profile.isVerified()) {
+            log.info("User {} business profile already verified", userId);
+            return;
+        }
+
+        if (profile.getBusinessType() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Business type is required before verification"
+            );
+        }
 
         String roleToAdd = switch (profile.getBusinessType()) {
             case FARMER -> "FARMER";
             case RESTAURANT -> "RESTAURANT";
             case NGO -> "NGO";
-            default -> throw new IllegalStateException("Unexpected business type: " + profile.getBusinessType());
         };
 
-        try {
-            roleUpgradeClient.addRoleToUser(userId, roleToAdd);
-            log.info("Successfully requested role '{}' for user {}", roleToAdd, userId);
-        } catch (Exception e) {
-            log.error("Failed to add role '{}' to user {}. Verify Identity Service is running.", roleToAdd, userId, e);
-        }
-    }
+        roleUpgradeClient.addRoleToUser(userId, roleToAdd);
 
+        profile.setVerified(true);
+        profile.setUpdatedAt(Instant.now());
+        businessRepo.save(profile);
+
+        log.info("Verified user {} and added role {}", userId, roleToAdd);
+    }
 
     @Override
     public ProfileResponse getMe(String userId) {
@@ -84,7 +94,7 @@ public class ProfileServiceImpl implements ProfileService {
         p.setEmail(req.email());
 
         // optional fields
-        if (req.role() != null) p.setRole("SHOPPER");
+        p.setRole("SHOPPER");
         if (req.displayName() != null) p.setDisplayName(req.displayName());
         if (req.location() != null) p.setLocation(req.location());
         if (req.about() != null) p.setAbout(req.about());
@@ -103,7 +113,6 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public BusinessProfile upsertBusiness(String userId, BusinessProfileRequest req) {
-
         BusinessProfile b = businessRepo.findByUserId(userId).orElseGet(BusinessProfile::new);
         boolean isNew = (b.getId() == null);
 
@@ -113,13 +122,18 @@ public class ProfileServiceImpl implements ProfileService {
             b.setVerified(false);
         }
 
-        // required fields
+        boolean businessTypeChanged = !isNew && b.getBusinessType() != req.businessType();
+        boolean addressChanged = !isNew && !Objects.equals(b.getAddress(), req.address());
+
+        if (businessTypeChanged || addressChanged) {
+            b.setVerified(false);
+        }
+
         b.setBusinessType(req.businessType());
         b.setBusinessName(req.businessName());
         b.setAddress(req.address());
         b.setEmail(req.email());
 
-        // optional
         if (req.description() != null) b.setDescription(req.description());
         if (req.hours() != null) b.setHours(req.hours());
         if (req.serviceArea() != null) b.setServiceArea(req.serviceArea());
@@ -127,17 +141,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         b.setUpdatedAt(Instant.now());
 
-        BusinessProfile saved = businessRepo.save(b);
-
-        String roleToAdd = switch (req.businessType()) {
-            case FARMER -> "FARMER";
-            case RESTAURANT -> "RESTAURANT";
-            case NGO -> "NGO";
-        };
-
-        roleUpgradeClient.addRoleToUser(userId, roleToAdd);
-
-        return saved;
+        return businessRepo.save(b);
     }
 
     @Override
