@@ -21,11 +21,6 @@ public class Order {
     @Id
     private String id;
 
-    private String shopperId;
-    private String restaurantId;
-    private List<String> items;  // List of product IDs
-    private Double totalPrice;
-
     private OrderStatus status;
 
     @Builder.Default // Ensures this defaults to "now" if not provided
@@ -35,9 +30,15 @@ public class Order {
     private List<StatusHistoryItem> history = new ArrayList<>();
 
     // ===== PAYMENT FIELDS =====
-    private String currency; // ex: cad
 
-    // store cents, not doubles
+    private String shopperId;
+    private String sellerUserId;
+
+    private List<OrderItem> items;
+
+    private String pickupLocation;
+
+    private String currency;
     private Long grossAmountCents;
     private Long platformFeeCents;
     private Long sellerAmountCents;
@@ -46,10 +47,24 @@ public class Order {
     private String stripePaymentIntentId;
     private String stripeClientSecret;
     private String stripeConnectedAccountId;
+    private String stripeTransferId;
+    private LocalDateTime releasedAt;
+    private LocalDateTime refundedAt;
+    private String stripeRefundId;
 
-    // helps avoid reducing stock twice if webhook retries
     @Builder.Default
     private boolean stockDeducted = false;
+
+    private String pickupCodeHash;
+    private String pickupCodePlain;
+    private LocalDateTime pickupCodeExpiresAt;
+    private Boolean pickupCodeVerified;
+    private LocalDateTime pickupVerifiedAt;
+    private String pickupVerifiedBy;
+    private LocalDateTime paidAt;
+    private LocalDateTime readyForPickupAt;
+    private LocalDateTime completedAt;
+    private LocalDateTime cancelledAt;
 
     // --- HELPER: Updates status AND history at the same time ---
     public void updateStatus(OrderStatus newStatus, String changedBy) {
