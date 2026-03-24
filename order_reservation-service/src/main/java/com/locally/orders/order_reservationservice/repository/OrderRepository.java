@@ -6,12 +6,8 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;
 
-public interface OrderRepository extends MongoRepository<Order, String>{
-
+public interface OrderRepository extends MongoRepository<Order, String> {
     List<Order> findByShopperId(String shopperId);
     List<Order> findByStatus(OrderStatus status);
-    List<Order> findByRestaurantId(String restaurantId);
-
-
-
+    List<Order> findBySellerUserId(String sellerUserId);
 }

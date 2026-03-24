@@ -9,16 +9,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+
 @Component
 @RequiredArgsConstructor
 public class ListingClient {
 
     private final RestTemplate restTemplate;
 
-    // Base URL of listing-service
     @Value("${listing.service.base-url:http://localhost:8084}")
     private String listingBaseUrl;
-
 
     public ListingDto getListing(String listingId) {
         try {
@@ -31,7 +31,6 @@ public class ListingClient {
         }
     }
 
-
     public void updateListingQuantity(String listingId, int newQuantity) {
         UpdateQuantityDto body = new UpdateQuantityDto(newQuantity);
 
@@ -43,17 +42,19 @@ public class ListingClient {
         );
     }
 
-    // DTO for listing response
     @Data
     public static class ListingDto {
         private String id;
+        private String ownerId;
+        private String title;
+        private String businessName;
+        private String pickupLocation;
         private Integer quantity;
-
-        //  add these so orders service can validate business rules
-        private String status; // ACTIVE, CLOSED, OUT_OF_STOCK
-        private String type;   // FARM_PRODUCT, SURPLUS_F
+        private String status;
+        private String type;
+        private BigDecimal price;
+        private String unit;
     }
 
-    // DTO for PATCH request body
     public record UpdateQuantityDto(Integer newQuantity) {}
 }
