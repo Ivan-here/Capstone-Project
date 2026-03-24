@@ -75,15 +75,13 @@ public class VerificationService {
         return repository.findByStatus("PENDING");
     }
 
-    // ADD THIS METHOD
     public Verification getVerificationByUserId(String userId) {
         List<Verification> verifications = repository.findAllByUserId(userId);
 
         if (verifications.isEmpty()) {
-            return null; // Return null so the frontend can handle "No document uploaded"
+            return null;
         }
 
-        // Return the most recent record instead of throwing an error
         return verifications.get(verifications.size() - 1);
     }
 
