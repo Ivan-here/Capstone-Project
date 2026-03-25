@@ -5,8 +5,11 @@ import com.example.stripe_paymentservice.service.StripePaymentService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payments")
@@ -14,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private final StripePaymentService stripePaymentService;
+    @Value("${stripe.publishable-key}")
+    private String stripePublishableKey;
 
     @PostMapping("/intent")
     public CreatePaymentIntentResponse createPaymentIntent(
@@ -42,5 +47,12 @@ public class PaymentController {
             @RequestBody RefundPaymentRequest request
     ) throws StripeException {
         return stripePaymentService.refundPayment(request);
+    }
+
+    @GetMapping("/config")
+    public Map<String, String> getStripeConfig() {
+        return Map.of(
+                "publishableKey", stripePublishableKey
+        );
     }
 }
