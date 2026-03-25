@@ -5,12 +5,12 @@ import com.example.listingservice.dto.FullUpdateListingDTO;
 import com.example.listingservice.dto.UpdateListingDTO;
 import com.example.listingservice.model.Listing;
 import com.example.listingservice.service.ListingService;
-import com.example.listingservice.repository.*;
+import com.example.listingservice.repository.ListingRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity; // <-- IMPORT ADDED
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,14 +24,11 @@ public class ListingController {
     private final ListingService service;
     private final ListingRepository repository;
 
-
-    // --- THE FIX: Intercepts RuntimeExceptions to send a clean text message instead of secure JSON ---
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
-    // 1. Endpoint for FARMERS only (Accepts Files now)
     @PostMapping(value = "/farm", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Listing createFarmListing(
@@ -40,7 +37,6 @@ public class ListingController {
         return service.createListing(dto, images, "FARMER");
     }
 
-    // 2. Endpoint for RESTAURANTS only (Accepts Files now)
     @PostMapping(value = "/surplus", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Listing createSurplusListing(
@@ -49,47 +45,68 @@ public class ListingController {
         return service.createListing(dto, images, "RESTAURANT");
     }
 
-    // 3. GET /listings (Browse)
+    // --- THE BULLETPROOF FIX ---
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<Listing> getAllListings(@RequestParam(required = false, defaultValue = "CITIZEN") String role) {
-        if ("NGO".equalsIgnoreCase(role)) {
-            // NGOs see everything (Private Donations + Public Products)
-            return service.getAllActiveListings();
-        } else {
-            // Citizens/Public see only what is marked PUBLIC
-            return repository.findByVisibility("PUBLIC");
+    public List<Listing> getAllListings(
+            @RequestParam(required = false, defaultValue = "SHOPPER") String role,
+            @RequestParam(required = false) String userId
+    ) {
+        // 1. Fetch absolutely everything to bypass MongoDB query bugs
+        List<Listing> allListings = repository.findAll();
+
+        // 2. Filter out anything that is explicitly "CLOSED"
+        List<Listing> activeListings = allListings.stream()
+                .filter(listing -> !"CLOSED".equalsIgnoreCase(listing.getStatus()))
+                .toList();
+
+        // 3. OWNER HUB: See all your personal items (both PUBLIC and NGO_ONLY)
+        if (userId != null && !userId.isEmpty()) {
+            return activeListings.stream()
+                    .filter(listing -> userId.equals(listing.getOwnerId()))
+                    .toList();
         }
+// --- UPDATED NGO CHECK: Be more flexible with the role string ---
+        boolean isNgo = role != null && (role.equalsIgnoreCase("NGO") || role.toUpperCase().contains("NGO"));
+
+        if (isNgo) {
+            // Return EVERYTHING that is active (Public + NGO_ONLY)
+            return activeListings;
+        }
+        // 5. PUBLIC BROWSE (Shoppers): Keep only PUBLIC items (and old items with null visibility)
+        return activeListings.stream()
+                .filter(listing -> {
+                    String vis = listing.getVisibility();
+                    // If visibility is missing (old data) OR it equals PUBLIC, show it!
+                    return vis == null || vis.equalsIgnoreCase("PUBLIC");
+                })
+                .toList();
     }
-    // GET ALL FOR ADMIN PANEL
+
     @GetMapping("/admin")
     @ResponseStatus(HttpStatus.OK)
     public List<Listing> getAllAdminListings() {
         return service.getAllListings();
     }
 
-    // 4. GET /listings/{id} (View Details)
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public Listing getListing(@PathVariable String id) {
         return service.getListingById(id);
     }
 
-    // 5. PATCH /listings/{id}/close (Owner closes)
     @PatchMapping("/{id}/close")
     @ResponseStatus(HttpStatus.OK)
     public Listing closeListing(@PathVariable String id) {
         return service.closeListing(id);
     }
 
-    // 6. PATCH /listings/{id}/quantity (Internal use by Orders Service)
     @PatchMapping("/{id}/quantity")
     @ResponseStatus(HttpStatus.OK)
     public Listing updateStock(@PathVariable String id, @Valid @RequestBody UpdateListingDTO dto) {
         return service.updateStock(id, dto);
     }
 
-    // 7. PUT /listings/{id} (Update full listing details and images from Farmer Hub)
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.OK)
     public Listing updateFullListing(
