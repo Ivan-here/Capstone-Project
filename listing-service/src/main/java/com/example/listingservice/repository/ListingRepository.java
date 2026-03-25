@@ -8,17 +8,11 @@ import java.util.List;
 
 public interface ListingRepository extends MongoRepository<Listing, String> {
 
-    // Find all products posted by a specific farmer/restaurant
     List<Listing> findByOwnerId(String ownerId);
 
-    // Find all products of a specific type (e.g., just SURPLUS_FOOD)
     List<Listing> findByType(String type);
 
-    // Find all active listings (ignoring expired ones)
-    List<Listing> findByStatus(String status);
-
-    // Add this to find items that need a visibility check
-
+    // RESTORED: This is required by DonationScheduler.java to find items that haven't crossed their half-life
     @Query("{ '$or': [ { 'visibility': ?0 }, { 'visibility': { $exists: false } }, { 'visibility': null } ] }")
     List<Listing> findByVisibility(String visibility);
 }
