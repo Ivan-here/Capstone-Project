@@ -125,6 +125,7 @@ services:
       - notifications-service
       - community-service
       - review-service
+      - stripe-payment-service
 
   admin-service:
     build:
@@ -151,6 +152,25 @@ services:
       - verification-service
       - review-service
       - community-service
+
+  stripe-payment-service:
+    build: ./stripe-payment-service
+    container_name: stripe_payment_service
+    ports:
+      - "8090:8090"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY}"
+      STRIPE_PUBLISHABLE_KEY: "${STRIPE_PUBLISHABLE_KEY}"
+      STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET}"
+      STRIPE_RETURN_URL: "${STRIPE_RETURN_URL}"
+      STRIPE_REFRESH_URL: "${STRIPE_REFRESH_URL}"
+      CLIENTS_PROFILEBASEURL: "http://profile-service:8081"
+      CLIENTS_ORDERBASEURL: "http://order-reservation-service:8086"
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_PAYMENT}"
+    depends_on:
+      - profile-service
+      - order-reservation-service
 
 volumes:
   mongo_data:
