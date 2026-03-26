@@ -3,6 +3,7 @@ package com.example.communityservice.controller;
 import com.example.communityservice.dto.CreateCommunityCommentRequest;
 import com.example.communityservice.dto.CreateCommunityPostRequest;
 import com.example.communityservice.dto.UpdateCommunityPostRequest;
+import com.example.communityservice.dto.UpdateCommunityReactionRequest;
 import com.example.communityservice.model.*;
 import com.example.communityservice.service.CommunityPostService;
 import jakarta.validation.Valid;
@@ -80,5 +81,13 @@ public class CommunityPostController {
             @PathVariable String commentId
     ) {
         return service.deleteComment(postId, commentId);
+    }
+
+    @PatchMapping("/{postId}/reactions")
+    public CommunityPost updateReaction(
+            @PathVariable String postId,
+            @Valid @RequestBody UpdateCommunityReactionRequest request
+    ) {
+        return service.updateReaction(postId, request);
     }
 }
