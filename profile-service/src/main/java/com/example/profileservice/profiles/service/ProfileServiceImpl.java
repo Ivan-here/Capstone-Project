@@ -1,5 +1,6 @@
 package com.example.profileservice.profiles.service;
 
+import com.example.profileservice.client.NotificationClient;
 import com.example.profileservice.profiles.dto.BusinessProfileRequest;
 import com.example.profileservice.profiles.dto.PersonalProfileRequest;
 import com.example.profileservice.profiles.dto.ProfileResponse;
@@ -26,7 +27,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final PersonalProfileRepository personalRepo;
     private final BusinessProfileRepository businessRepo;
     private final RoleUpgradeClient roleUpgradeClient;
-
+    private final NotificationClient notificationClient;
 
     @Override
     public void verifyUser(String userId) {
@@ -80,7 +81,6 @@ public class ProfileServiceImpl implements ProfileService {
             p.setCreatedAt(Instant.now());
         }
 
-        // required registration fields
         p.setFirstName(req.firstName());
         p.setLastName(req.lastName());
 
@@ -93,7 +93,6 @@ public class ProfileServiceImpl implements ProfileService {
 
         p.setEmail(req.email());
 
-        // optional fields
         p.setRole("SHOPPER");
         if (req.displayName() != null) p.setDisplayName(req.displayName());
         if (req.location() != null) p.setLocation(req.location());
@@ -109,7 +108,6 @@ public class ProfileServiceImpl implements ProfileService {
         p.setUpdatedAt(Instant.now());
         return personalRepo.save(p);
     }
-
 
     @Override
     public BusinessProfile upsertBusiness(String userId, BusinessProfileRequest req) {
@@ -206,10 +204,132 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
+    public ProfileResponse followUser(String followerUserId, String targetUserId) {
+        if (followerUserId == null || followerUserId.isBlank() || targetUserId == null || targetUserId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Both followerUserId and targetUserId are required");
+        }
+        if (followerUserId.equals(targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot follow yourself");
+        }
+
+        PersonalProfile follower = personalRepo.findByUserId(followerUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Follower personal profile not found"));
+        PersonalProfile target = personalRepo.findByUserId(targetUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target personal profile not found"));
+
+        boolean alreadyFollowing = (follower.getFollowingPeople() != null)
+                && follower.getFollowingPeople().stream().anyMatch(item -> targetUserId.equals(item.getId()));
+        if (alreadyFollowing) {
+            return getProfileByUserId(targetUserId);
+        }
+
+        PersonalProfile.FollowPerson followPerson = new PersonalProfile.FollowPerson();
+        followPerson.setId(targetUserId);
+        followPerson.setName(displayNameFor(targetUserId, target));
+
+        if (follower.getFollowingPeople() == null) {
+            follower.setFollowingPeople(new java.util.ArrayList<>());
+        }
+        follower.getFollowingPeople().add(followPerson);
+        if (follower.getStats() == null) {
+            follower.setStats(new PersonalProfile.Stats());
+        }
+        follower.getStats().setFollowing(Math.max(0, follower.getFollowingPeople().size()));
+        follower.setUpdatedAt(Instant.now());
+        personalRepo.save(follower);
+
+        if (target.getStats() == null) {
+            target.setStats(new PersonalProfile.Stats());
+        }
+        target.getStats().setFollowers(Math.max(0, target.getStats().getFollowers() + 1));
+        target.setUpdatedAt(Instant.now());
+        personalRepo.save(target);
+
+        createFollowNotification(targetUserId, followerUserId, displayNameFor(followerUserId, follower));
+        return getProfileByUserId(targetUserId);
+    }
+
+    @Override
+    public ProfileResponse unfollowUser(String followerUserId, String targetUserId) {
+        if (followerUserId == null || followerUserId.isBlank() || targetUserId == null || targetUserId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Both followerUserId and targetUserId are required");
+        }
+        if (followerUserId.equals(targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot unfollow yourself");
+        }
+
+        PersonalProfile follower = personalRepo.findByUserId(followerUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Follower personal profile not found"));
+        PersonalProfile target = personalRepo.findByUserId(targetUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target personal profile not found"));
+
+        boolean removed = follower.getFollowingPeople() != null
+                && follower.getFollowingPeople().removeIf(item -> targetUserId.equals(item.getId()));
+        if (removed) {
+            if (follower.getStats() == null) {
+                follower.setStats(new PersonalProfile.Stats());
+            }
+            follower.getStats().setFollowing(Math.max(0, follower.getFollowingPeople().size()));
+            follower.setUpdatedAt(Instant.now());
+            personalRepo.save(follower);
+
+            if (target.getStats() == null) {
+                target.setStats(new PersonalProfile.Stats());
+            }
+            target.getStats().setFollowers(Math.max(0, target.getStats().getFollowers() - 1));
+            target.setUpdatedAt(Instant.now());
+            personalRepo.save(target);
+        }
+
+        return getProfileByUserId(targetUserId);
+    }
+
+    @Override
     public void deletePersonal(String userId) {
         PersonalProfile p = personalRepo.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personal profile not found"));
 
         personalRepo.delete(p);
+    }
+
+    private void createFollowNotification(String targetUserId, String followerUserId, String followerDisplayName) {
+        NotificationClient.NotificationRequest notification = new NotificationClient.NotificationRequest();
+        notification.setUserId(targetUserId);
+        notification.setActorUserId(followerUserId);
+        notification.setType("NEW_FOLLOWER");
+        notification.setTitle("New follower");
+        notification.setMessage(followerDisplayName + " started following you.");
+        notification.setSourceService("profile-service");
+        notification.setReferenceType("PROFILE");
+        notification.setReferenceId(followerUserId);
+        notification.setTargetUrl("/profile/" + followerUserId);
+
+        try {
+            notificationClient.createNotification(notification);
+        } catch (Exception ex) {
+            log.warn("Failed to create follow notification targetUserId={} followerUserId={}", targetUserId, followerUserId, ex);
+        }
+    }
+
+    private String displayNameFor(String userId, PersonalProfile personalProfile) {
+        if (personalProfile != null) {
+            if (personalProfile.getDisplayName() != null && !personalProfile.getDisplayName().isBlank()) {
+                return personalProfile.getDisplayName().trim();
+            }
+            if (personalProfile.getUsername() != null && !personalProfile.getUsername().isBlank()) {
+                return personalProfile.getUsername().trim();
+            }
+            String fullName = ((personalProfile.getFirstName() == null ? "" : personalProfile.getFirstName()) + " "
+                    + (personalProfile.getLastName() == null ? "" : personalProfile.getLastName())).trim();
+            if (!fullName.isBlank()) {
+                return fullName;
+            }
+        }
+
+        BusinessProfile businessProfile = businessRepo.findByUserId(userId).orElse(null);
+        if (businessProfile != null && businessProfile.getBusinessName() != null && !businessProfile.getBusinessName().isBlank()) {
+            return businessProfile.getBusinessName().trim();
+        }
+        return "User";
     }
 }

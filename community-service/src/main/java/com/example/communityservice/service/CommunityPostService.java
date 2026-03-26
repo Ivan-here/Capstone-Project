@@ -5,6 +5,7 @@ import com.example.communityservice.client.NotificationClient;
 import com.example.communityservice.dto.CreateCommunityCommentRequest;
 import com.example.communityservice.dto.CreateCommunityPostRequest;
 import com.example.communityservice.dto.UpdateCommunityPostRequest;
+import com.example.communityservice.dto.UpdateCommunityReactionRequest;
 import com.example.communityservice.model.*;
 import com.example.communityservice.repository.CommunityPostRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,8 @@ import java.util.UUID;
 @Service
 @Slf4j
 public class CommunityPostService {
+
+    private static final long LIKE_NOTIFICATION_STEP = 15;
 
     private final CommunityPostRepository repository;
     private final IdentityClient identityClient;
@@ -140,6 +143,52 @@ public class CommunityPostService {
         return repository.save(post);
     }
 
+    public CommunityPost updateReaction(String postId, UpdateCommunityReactionRequest request) {
+        IdentityClient.IdentityUserSummary reactor = requireUser(request.userId());
+        CommunityPost post = getById(postId);
+
+        if (post.getReactions() == null) {
+            post.setReactions(new ArrayList<>());
+        }
+
+        CommunityReaction existingReaction = null;
+        for (CommunityReaction reaction : post.getReactions()) {
+            if (reactor.userId().equals(reaction.getUserId())) {
+                existingReaction = reaction;
+                break;
+            }
+        }
+
+        if (request.reactionType() == null) {
+            if (existingReaction != null) {
+                post.getReactions().remove(existingReaction);
+            }
+        } else {
+            if (request.reactionType() != CommunityReactionType.LIKE) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only LIKE reactions are supported");
+            }
+            if (existingReaction == null) {
+                existingReaction = new CommunityReaction();
+                existingReaction.setUserId(reactor.userId());
+                post.getReactions().add(existingReaction);
+            }
+            existingReaction.setDisplayName(reactor.displayName());
+            existingReaction.setUsername(reactor.username());
+            existingReaction.setReactionType(CommunityReactionType.LIKE);
+            existingReaction.setReactedAt(Instant.now());
+        }
+
+        recalculateReactionCounts(post);
+        post.setUpdatedAt(Instant.now());
+        long previousMilestone = post.getLastLikeMilestoneNotified();
+        CommunityPost saved = repository.save(post);
+        createLikeMilestoneNotificationIfNeeded(saved, reactor);
+        if (saved.getLastLikeMilestoneNotified() != previousMilestone) {
+            saved = repository.save(saved);
+        }
+        return saved;
+    }
+
     private void applyPostValues(CommunityPost post, CreateCommunityPostRequest request, IdentityClient.IdentityUserSummary author) {
         post.setUserId(author.userId());
         post.setAuthorDisplayName(author.displayName());
@@ -151,8 +200,6 @@ public class CommunityPostService {
         post.setTitle(request.title().trim());
         post.setContent(request.content().trim());
         post.setImageUrl(normalizeNullable(request.imageUrl()));
-        post.setCtaText(normalizeNullable(request.ctaText()));
-        post.setCtaUrl(normalizeNullable(request.ctaUrl()));
         post.setTags(normalizeTags(request.tags()));
     }
 
@@ -167,8 +214,6 @@ public class CommunityPostService {
         post.setTitle(request.title().trim());
         post.setContent(request.content().trim());
         post.setImageUrl(normalizeNullable(request.imageUrl()));
-        post.setCtaText(normalizeNullable(request.ctaText()));
-        post.setCtaUrl(normalizeNullable(request.ctaUrl()));
         post.setTags(normalizeTags(request.tags()));
     }
 
@@ -208,6 +253,59 @@ public class CommunityPostService {
         } catch (Exception ex) {
             log.warn("Failed to create community comment notification for postId={} recipientUserId={}", post.getId(), post.getUserId(), ex);
         }
+    }
+
+    private void createLikeMilestoneNotificationIfNeeded(CommunityPost post, IdentityClient.IdentityUserSummary reactor) {
+        long milestone = (post.getLikeCount() / LIKE_NOTIFICATION_STEP) * LIKE_NOTIFICATION_STEP;
+        if (milestone <= 0) {
+            return;
+        }
+        if (milestone <= post.getLastLikeMilestoneNotified()) {
+            return;
+        }
+        if (post.getUserId() == null || post.getUserId().equals(reactor.userId())) {
+            return;
+        }
+
+        NotificationRequest notification = new NotificationRequest();
+        notification.setUserId(post.getUserId());
+        notification.setActorUserId(reactor.userId());
+        notification.setType("COMMUNITY_LIKE_MILESTONE");
+        notification.setTitle("Your post hit " + milestone + " likes");
+        notification.setMessage("\"" + post.getTitle() + "\" reached " + milestone + " likes.");
+        notification.setSourceService("community-service");
+        notification.setReferenceType("COMMUNITY_POST");
+        notification.setReferenceId(post.getId());
+        notification.setTargetUrl("/community/posts/" + post.getId());
+
+        try {
+            notificationClient.createNotification(notification);
+            post.setLastLikeMilestoneNotified(milestone);
+        } catch (Exception ex) {
+            log.warn("Failed to create community like milestone notification for postId={} recipientUserId={}", post.getId(), post.getUserId(), ex);
+        }
+    }
+
+    private void recalculateReactionCounts(CommunityPost post) {
+        long likes = 0;
+
+        List<CommunityReaction> cleaned = new ArrayList<>();
+        if (post.getReactions() != null) {
+            for (CommunityReaction reaction : post.getReactions()) {
+                if (reaction == null || reaction.getUserId() == null || reaction.getUserId().isBlank()) {
+                    continue;
+                }
+                if (reaction.getReactionType() != CommunityReactionType.LIKE) {
+                    continue;
+                }
+                cleaned.add(reaction);
+                likes++;
+            }
+        }
+
+        post.setReactions(cleaned);
+        post.setLikeCount(likes);
+        post.setDislikeCount(0);
     }
 
     private List<String> normalizeTags(List<String> tags) {
