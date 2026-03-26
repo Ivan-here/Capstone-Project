@@ -28,6 +28,9 @@ public interface ProfileService {
     BusinessProfile setBusinessVerified(String userId, boolean verified);
     void verifyUser(String userId);
 
+    ProfileResponse followUser(String followerUserId, String targetUserId);
+    ProfileResponse unfollowUser(String followerUserId, String targetUserId);
+
     void deletePersonal(String userId);
     void deleteBusiness(String userId);
 }

@@ -19,12 +19,9 @@ import org.springframework.web.bind.annotation.*;
 public class ProfileController {
 
     private final ProfileService profileService;
-    /**
-     * JwtAuthFilter sets Authentication principal to userId (JWT sub).
-     */
+
     private String userId(Authentication authentication) {
         if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            //!endpoints require authentication anyway, but just to be sure
             throw new IllegalStateException("Unauthenticated request (missing userId)");
         }
         return authentication.getName();
@@ -64,7 +61,20 @@ public class ProfileController {
         profileService.deleteBusiness(uid);
     }
 
-    // Add this to ProfileController.java
+    @PostMapping("/{targetUserId}/follow")
+    public ProfileResponse followUser(@PathVariable String targetUserId, Authentication authentication) {
+        String uid = userId(authentication);
+        log.info("POST /profiles/{}/follow followerUserId={}", targetUserId, uid);
+        return profileService.followUser(uid, targetUserId);
+    }
+
+    @DeleteMapping("/{targetUserId}/follow")
+    public ProfileResponse unfollowUser(@PathVariable String targetUserId, Authentication authentication) {
+        String uid = userId(authentication);
+        log.info("DELETE /profiles/{}/follow followerUserId={}", targetUserId, uid);
+        return profileService.unfollowUser(uid, targetUserId);
+    }
+
     @GetMapping("/{userId}")
     public ProfileResponse getProfileById(@PathVariable String userId) {
         log.info("GET /profiles/{}", userId);

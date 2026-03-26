@@ -16,7 +16,5 @@ public record CreateCommunityPostRequest(
         CommunityAuthorType authorType,
         String authorHeadline,
         String imageUrl,
-        String ctaText,
-        String ctaUrl,
         List<String> tags
 ) {}
