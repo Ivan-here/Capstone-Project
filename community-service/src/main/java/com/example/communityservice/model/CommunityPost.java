@@ -25,12 +25,13 @@ public class CommunityPost {
     private String title;
     private String content;
     private String imageUrl;
-    private String ctaText;
-    private String ctaUrl;
 
     private List<String> tags = new ArrayList<>();
     private List<CommunityComment> comments = new ArrayList<>();
+    private List<CommunityReaction> reactions = new ArrayList<>();
     private long likeCount = 0;
+    private long dislikeCount = 0;
+    private long lastLikeMilestoneNotified = 0;
 
     private Instant createdAt;
     private Instant updatedAt;
@@ -68,20 +69,23 @@ public class CommunityPost {
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
-    public String getCtaText() { return ctaText; }
-    public void setCtaText(String ctaText) { this.ctaText = ctaText; }
-
-    public String getCtaUrl() { return ctaUrl; }
-    public void setCtaUrl(String ctaUrl) { this.ctaUrl = ctaUrl; }
-
     public List<String> getTags() { return tags; }
     public void setTags(List<String> tags) { this.tags = tags; }
 
     public List<CommunityComment> getComments() { return comments; }
     public void setComments(List<CommunityComment> comments) { this.comments = comments; }
 
+    public List<CommunityReaction> getReactions() { return reactions; }
+    public void setReactions(List<CommunityReaction> reactions) { this.reactions = reactions; }
+
     public long getLikeCount() { return likeCount; }
     public void setLikeCount(long likeCount) { this.likeCount = likeCount; }
+
+    public long getDislikeCount() { return dislikeCount; }
+    public void setDislikeCount(long dislikeCount) { this.dislikeCount = dislikeCount; }
+
+    public long getLastLikeMilestoneNotified() { return lastLikeMilestoneNotified; }
+    public void setLastLikeMilestoneNotified(long lastLikeMilestoneNotified) { this.lastLikeMilestoneNotified = lastLikeMilestoneNotified; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
