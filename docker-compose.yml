@@ -34,6 +34,7 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_LISTING}"
+      PAYMENT_SERVICE_BASE_URL: "http://stripe-payment-service:8090"
 
   identity-service:
     build:
@@ -71,6 +72,7 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_ORDER}"
       LISTING_SERVICE_BASE_URL: "http://listing-service:8084"
+      PAYMENT_SERVICE_BASE_URL: "http://stripe-payment-service:8090"
 
 
   notifications-service:
