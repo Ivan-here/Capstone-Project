@@ -59,6 +59,11 @@ public class OrderReservationController {
         return orderService.getOrdersBySeller(sellerUserId);
     }
 
+    @GetMapping("/orders/history")
+    public OrderHistoryResponse getOrderHistory(@RequestParam String userId) {
+        return orderService.getOrderHistory(userId);
+    }
+
     @PostMapping("/internal/orders/{orderId}/payment-succeeded")
     public PaymentSucceededResponse markPaymentSucceeded(
             @PathVariable String orderId,
