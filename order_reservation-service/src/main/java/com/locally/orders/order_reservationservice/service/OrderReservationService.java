@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -537,6 +538,18 @@ public class OrderReservationService {
 
     public List<Order> getOrdersBySeller(String sellerUserId) {
         return orderRepository.findBySellerUserId(sellerUserId);
+    }
+
+    public OrderHistoryResponse getOrderHistory(String userId) {
+        List<Order> bought = orderRepository.findByShopperId(userId).stream()
+                .sorted(Comparator.comparing(Order::getOrderDate, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                .toList();
+
+        List<Order> sold = orderRepository.findBySellerUserId(userId).stream()
+                .sorted(Comparator.comparing(Order::getOrderDate, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                .toList();
+
+        return new OrderHistoryResponse(bought, sold);
     }
 
     // ================= RESERVATIONS =================
