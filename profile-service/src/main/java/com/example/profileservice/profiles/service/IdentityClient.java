@@ -17,4 +17,7 @@ public interface IdentityClient {
             @PathVariable("userId") String userId,
             @RequestBody Map<String, Object> body
     );
+
+    @DeleteMapping("/users/{userId}")
+    void deleteUser(@PathVariable("userId") String userId);
 }

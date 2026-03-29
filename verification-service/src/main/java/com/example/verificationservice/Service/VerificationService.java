@@ -54,18 +54,29 @@ public class VerificationService {
         Verification verification = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
 
+        String status = dto.status() == null ? "" : dto.status().trim().toUpperCase();
+        String adminNotes = dto.adminNotes() == null ? "" : dto.adminNotes().trim();
+
+        if (status.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Verification status is required");
+        }
+
+        if ("REJECTED".equals(status) && adminNotes.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rejection reason is required");
+        }
+
         String oldStatus = verification.getStatus();
         boolean approvingNow =
                 !"APPROVED".equalsIgnoreCase(oldStatus)
-                        && "APPROVED".equalsIgnoreCase(dto.status());
+                        && "APPROVED".equalsIgnoreCase(status);
 
         if (approvingNow) {
             log.info("Verification approved. Notifying Profile Service for user {}", verification.getUserId());
             profileClient.verifyProfile(verification.getUserId());
         }
 
-        verification.setStatus(dto.status());
-        verification.setAdminNotes(dto.adminNotes());
+        verification.setStatus(status);
+        verification.setAdminNotes(adminNotes.isBlank() ? null : adminNotes);
         verification.setUpdatedAt(LocalDateTime.now());
 
         return repository.save(verification);

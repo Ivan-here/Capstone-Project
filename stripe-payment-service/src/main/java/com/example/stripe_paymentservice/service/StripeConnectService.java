@@ -88,8 +88,8 @@ public class StripeConnectService {
 
         AccountLinkCreateParams params = AccountLinkCreateParams.builder()
                 .setAccount(profile.getStripeConnectedAccountId())
-                .setRefreshUrl(refreshUrl + "?userId=" + userId)
-                .setReturnUrl(returnUrl + "?userId=" + userId)
+                .setRefreshUrl(refreshUrl + "?sellerId=" + userId)
+                .setReturnUrl(returnUrl + "?sellerId=" + userId)
                 .setType(AccountLinkCreateParams.Type.ACCOUNT_ONBOARDING)
                 .build();
 

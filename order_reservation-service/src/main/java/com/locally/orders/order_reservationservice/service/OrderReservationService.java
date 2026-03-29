@@ -243,6 +243,58 @@ public class OrderReservationService {
         throw new RuntimeException("Order cannot be cancelled in its current state");
     }
 
+    public Order adminDisputeOrder(String orderId, AdminDisputeOrderRequest request) {
+        Order order = getOrderById(orderId);
+
+        if (request == null || request.adminUserId() == null || request.adminUserId().isBlank()) {
+            throw new RuntimeException("adminUserId is required");
+        }
+
+        if (request.reason() == null || request.reason().isBlank()) {
+            throw new RuntimeException("reason is required");
+        }
+
+        order.updateStatus(OrderStatus.DISPUTED, request.adminUserId());
+
+        if (!request.refundPayment()) {
+            return orderRepository.save(order);
+        }
+
+        if (order.getPaymentStatus() != PaymentStatus.HELD) {
+            throw new RuntimeException("Refund is only available while funds are still held");
+        }
+
+        if (order.getStripePaymentIntentId() == null || order.getStripePaymentIntentId().isBlank()) {
+            throw new RuntimeException("Order payment intent is missing");
+        }
+
+        RefundPaymentResponse refundResponse = paymentClient.refundPayment(
+                new RefundPaymentRequest(
+                        order.getId(),
+                        order.getStripePaymentIntentId(),
+                        order.getGrossAmountCents(),
+                        "admin_dispute: " + request.reason().trim()
+                )
+        );
+
+        if (refundResponse == null || refundResponse.refundId() == null || refundResponse.refundId().isBlank()) {
+            throw new RuntimeException("Refund failed");
+        }
+
+        if (order.isStockDeducted()) {
+            restoreOrderStock(order);
+            order.setStockDeducted(false);
+        }
+
+        order.setStripeRefundId(refundResponse.refundId());
+        order.setRefundedAt(LocalDateTime.now());
+        order.setCancelledAt(LocalDateTime.now());
+        order.setPaymentStatus(PaymentStatus.REFUNDED);
+        order.updateStatus(OrderStatus.CANCELLED, request.adminUserId());
+
+        return orderRepository.save(order);
+    }
+
     public PaymentSucceededResponse markPaymentSucceeded(String orderId, PaymentSucceededRequest request) {
         Order order = getOrderById(orderId);
 
