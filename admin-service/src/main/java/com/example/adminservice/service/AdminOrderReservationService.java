@@ -1,8 +1,8 @@
 package com.example.adminservice.service;
 
 import com.example.adminservice.clients.OrderReservationServiceClient;
+import com.example.adminservice.dtos.orderReservation.AdminDisputeOrderRequest;
 import com.example.adminservice.dtos.orderReservation.Order;
-import com.example.adminservice.dtos.orderReservation.OrderStatus;
 import com.example.adminservice.dtos.orderReservation.Reservation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,15 +27,12 @@ public class AdminOrderReservationService {
         return orderReservationServiceClient.getOrdersByShopper(shopperId);
     }
 
-    public List<Order> getOrdersByRestaurant(String restaurantId) {
-        return orderReservationServiceClient.getOrdersByRestaurant(restaurantId);
+    public List<Order> getOrdersBySeller(String sellerUserId) {
+        return orderReservationServiceClient.getOrdersBySeller(sellerUserId);
     }
 
-    public Order updateOrderStatus(String id, String status) {
-        return orderReservationServiceClient.updateOrderStatus(
-                id,
-                OrderStatus.valueOf(status.toUpperCase())
-        );
+    public Order disputeOrder(String id, AdminDisputeOrderRequest request) {
+        return orderReservationServiceClient.adminDisputeOrder(id, request);
     }
 
     public void deleteOrder(String id) {
