@@ -60,6 +60,8 @@ services:
       JWT_SECRET: "${JWT_SECRET}"
       INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
       CLIENTS_IDENTITYBASEURL: "http://identity-service:8082"
+      CLIENTS_VERIFICATIONBASEURL: "http://verification-service:8083"
+      CLIENTS_ADMINBASEURL: "http://admin-service:8087"
     depends_on:
       - identity-service
 

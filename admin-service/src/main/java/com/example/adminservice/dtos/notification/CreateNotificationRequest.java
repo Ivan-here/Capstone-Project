@@ -9,6 +9,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateNotificationRequest {
     private String userId;
+    private String actorUserId;
     private String type;
+    private String title;
     private String message;
+    private String sourceService;
+    private String referenceType;
+    private String referenceId;
+    private String targetUrl;
 }

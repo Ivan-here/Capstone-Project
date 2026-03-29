@@ -2,6 +2,7 @@ package com.example.adminservice.clients;
 
 import com.example.adminservice.dtos.orderReservation.OrderStatus;
 import com.example.adminservice.dtos.orderReservation.Reservation;
+import com.example.adminservice.dtos.orderReservation.AdminDisputeOrderRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 import com.example.adminservice.dtos.orderReservation.Order;
@@ -14,35 +15,26 @@ import java.util.List;
 )
 public interface OrderReservationServiceClient {
 
-    @PostMapping("/api/orders")
-    Order createOrder(@RequestBody Order order);
-
     @GetMapping("/api/orders/all")
     List<Order> getAllOrders();
 
     @GetMapping("/api/orders/{id}")
     Order getOrderById(@PathVariable("id") String id);
 
-    @PutMapping("/api/orders/{id}")
-    Order updateOrder(
-            @PathVariable("id") String id,
-            @RequestBody Order order
-    );
-
     @DeleteMapping("/api/orders/{id}")
     void deleteOrder(@PathVariable("id") String id);
-
-    @PatchMapping("/api/orders/{id}/status")
-    Order updateOrderStatus(
-            @PathVariable("id") String id,
-            @RequestParam("status") OrderStatus status
-    );
 
     @GetMapping("/api/orders")
     List<Order> getOrdersByShopper(@RequestParam("shopperId") String shopperId);
 
-    @GetMapping("/api/orders/restaurant/{restaurantId}")
-    List<Order> getOrdersByRestaurant(@PathVariable("restaurantId") String restaurantId);
+    @GetMapping("/api/orders/seller/{sellerUserId}")
+    List<Order> getOrdersBySeller(@PathVariable("sellerUserId") String sellerUserId);
+
+    @PostMapping("/api/orders/{id}/admin-dispute")
+    Order adminDisputeOrder(
+            @PathVariable("id") String id,
+            @RequestBody AdminDisputeOrderRequest request
+    );
 
 
     // ===================== RESERVATIONS =====================

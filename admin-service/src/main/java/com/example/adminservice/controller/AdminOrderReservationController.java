@@ -2,6 +2,7 @@ package com.example.adminservice.controller;
 
 import com.example.adminservice.dtos.orderReservation.Order;
 import com.example.adminservice.dtos.orderReservation.Reservation;
+import com.example.adminservice.dtos.orderReservation.AdminDisputeOrderRequest;
 import com.example.adminservice.service.AdminOrderReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -30,17 +31,17 @@ public class AdminOrderReservationController {
         return adminOrderReservationService.getOrdersByShopper(shopperId);
     }
 
-    @GetMapping("/orders/restaurant/{restaurantId}")
-    public List<Order> getOrdersByRestaurant(@PathVariable String restaurantId) {
-        return adminOrderReservationService.getOrdersByRestaurant(restaurantId);
+    @GetMapping("/orders/seller/{sellerUserId}")
+    public List<Order> getOrdersBySeller(@PathVariable String sellerUserId) {
+        return adminOrderReservationService.getOrdersBySeller(sellerUserId);
     }
 
-    @PatchMapping("/orders/{id}/status")
-    public Order updateOrderStatus(
+    @PostMapping("/orders/{id}/dispute")
+    public Order disputeOrder(
             @PathVariable String id,
-            @RequestParam String status
+            @RequestBody AdminDisputeOrderRequest request
     ) {
-        return adminOrderReservationService.updateOrderStatus(id, status);
+        return adminOrderReservationService.disputeOrder(id, request);
     }
 
     @DeleteMapping("/orders/{id}")
