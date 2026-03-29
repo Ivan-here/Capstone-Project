@@ -18,8 +18,14 @@ public class AdminNotificationService {
     public Notification createNotification(CreateNotificationRequest request) {
         Notification notification = new Notification();
         notification.setUserId(request.getUserId());
+        notification.setActorUserId(request.getActorUserId());
         notification.setType(request.getType());
+        notification.setTitle(request.getTitle());
         notification.setMessage(request.getMessage());
+        notification.setSourceService(request.getSourceService());
+        notification.setReferenceType(request.getReferenceType());
+        notification.setReferenceId(request.getReferenceId());
+        notification.setTargetUrl(request.getTargetUrl());
         notification.setRead(false);
         notification.setCreatedAt(Instant.now());
 

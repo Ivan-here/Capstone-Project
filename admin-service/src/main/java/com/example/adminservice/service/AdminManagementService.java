@@ -108,12 +108,24 @@ public class AdminManagementService {
     }
 
     public AuditLog logAudit(String eventType, String entityType, String entityId, String performedBy, String description) {
+        return logAudit(eventType, entityType, entityId, performedBy, description, null);
+    }
+
+    public AuditLog logAudit(
+            String eventType,
+            String entityType,
+            String entityId,
+            String performedBy,
+            String description,
+            java.util.Map<String, Object> metadata
+    ) {
         AuditLog log = AuditLog.builder()
                 .eventType(eventType)
                 .entityType(entityType)
                 .entityId(entityId)
                 .performedBy(performedBy)
                 .description(description)
+                .metadata(metadata)
                 .createdAt(Instant.now())
                 .build();
 
