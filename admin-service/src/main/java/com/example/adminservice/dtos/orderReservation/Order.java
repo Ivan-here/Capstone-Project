@@ -4,46 +4,54 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Document(collection = "orders")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class Order {
 
-    @Id
     private String id;
-
-    private String shopperId;
-    private String restaurantId;
-    private List<String> items;  // List of product IDs
-    private Double totalPrice;
-
     private OrderStatus status;
 
-    @Builder.Default // Ensures this defaults to "now" if not provided
+    @Builder.Default
     private LocalDateTime orderDate = LocalDateTime.now();
 
-    @Builder.Default // Ensures list is not null
+    @Builder.Default
     private List<StatusHistoryItem> history = new ArrayList<>();
 
-    // --- HELPER: Updates status AND history at the same time ---
-    public void updateStatus(OrderStatus newStatus, String changedBy) {
-        if (this.history == null) this.history = new ArrayList<>();
-        if (this.orderDate == null) this.orderDate = LocalDateTime.now();
-        this.status = newStatus;
-        this.history.add(new StatusHistoryItem(newStatus, LocalDateTime.now(), changedBy));
-    }
+    private String shopperId;
+    private String sellerUserId;
+    private List<OrderItem> items;
+    private String pickupLocation;
+    private String currency;
+    private Long grossAmountCents;
+    private Long platformFeeCents;
+    private Long sellerAmountCents;
+    private PaymentStatus paymentStatus;
+    private String stripePaymentIntentId;
+    private String stripeClientSecret;
+    private String stripeConnectedAccountId;
+    private String stripeTransferId;
+    private LocalDateTime releasedAt;
+    private LocalDateTime refundedAt;
+    private String stripeRefundId;
+    private boolean stockDeducted;
+    private String pickupCodeHash;
+    private String pickupCodePlain;
+    private LocalDateTime pickupCodeExpiresAt;
+    private Boolean pickupCodeVerified;
+    private LocalDateTime pickupVerifiedAt;
+    private String pickupVerifiedBy;
+    private LocalDateTime paidAt;
+    private LocalDateTime readyForPickupAt;
+    private LocalDateTime completedAt;
+    private LocalDateTime cancelledAt;
 
-
-    // --- INNER CLASS (StatusHistory) ---
     @Data
     @AllArgsConstructor
     @NoArgsConstructor

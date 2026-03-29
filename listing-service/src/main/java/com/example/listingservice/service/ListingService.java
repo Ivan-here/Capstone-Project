@@ -3,14 +3,11 @@ package com.example.listingservice.service;
 import com.example.listingservice.dto.CreateListingDTO;
 import com.example.listingservice.dto.FullUpdateListingDTO;
 import com.example.listingservice.dto.UpdateListingDTO;
-import com.example.listingservice.dto.internal.SellerPaymentProfileDTO;
 import com.example.listingservice.model.Listing;
 import com.example.listingservice.repository.ListingRepository;
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import com.example.listingservice.client.PaymentClient;
 import com.example.listingservice.client.ProfileClient;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,7 +23,6 @@ public class ListingService {
 
     private final ListingRepository repository;
     private final ProfileClient profileClient;
-    private final PaymentClient paymentClient;
     private final CloudinaryService cloudinaryService;
 
     public Listing createListing(CreateListingDTO dto, List<MultipartFile> images, String expectedBusinessType) {
@@ -41,10 +37,6 @@ public class ListingService {
         String actualType = profile.getBusinessType();
         if (actualType == null || !actualType.equalsIgnoreCase(expectedBusinessType)) {
             throw new RuntimeException("Access Denied: You are a " + actualType + ", but this endpoint is for " + expectedBusinessType + "s.");
-        }
-
-        if ("FARMER".equalsIgnoreCase(expectedBusinessType)) {
-            enforceFarmerPaymentOnboarding(dto.ownerId());
         }
 
         List<String> uploadedUrls = new ArrayList<>();
@@ -90,30 +82,6 @@ public class ListingService {
 
         return repository.save(listing);
     }
-
-    private void enforceFarmerPaymentOnboarding(String ownerId) {
-        try {
-            SellerPaymentProfileDTO sellerPaymentProfile = paymentClient.refreshSellerStatus(ownerId);
-            if (sellerPaymentProfile == null || !sellerPaymentProfile.isReadyToReceivePayments()) {
-                throw new RuntimeException(
-                        "Access Denied: Complete Stripe onboarding before posting farm products."
-                );
-            }
-        } catch (FeignException ex) {
-            log.warn("Stripe onboarding check failed for farmer {} with status {}", ownerId, ex.status());
-            throw new RuntimeException(
-                    "Access Denied: Complete Stripe onboarding before posting farm products."
-            );
-        } catch (RuntimeException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            log.error("Failed to verify Stripe onboarding for farmer {}: {}", ownerId, ex.getMessage());
-            throw new RuntimeException(
-                    "Access Denied: Unable to verify Stripe onboarding status. Complete onboarding first."
-            );
-        }
-    }
-
     public Listing getListingById(String id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Listing not found"));

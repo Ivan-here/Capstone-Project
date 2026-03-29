@@ -96,6 +96,14 @@ public class OrderReservationController {
         return orderService.cancelOrder(orderId, request);
     }
 
+    @PostMapping("/orders/{orderId}/admin-dispute")
+    public Order adminDisputeOrder(
+            @PathVariable String orderId,
+            @RequestBody AdminDisputeOrderRequest request
+    ) {
+        return orderService.adminDisputeOrder(orderId, request);
+    }
+
     @GetMapping("/orders/{orderId}/pickup-code")
     public PickupCodeResponse getPickupCode(
             @PathVariable String orderId,
