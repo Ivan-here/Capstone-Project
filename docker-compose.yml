@@ -1,17 +1,17 @@
 services:
   # 1. The Database (FIXED CREDENTIALS)
-#  mongodb:
-#    image: mongo:latest
-#    container_name: mongodb
-#    ports:
-#      - "27017:27017"
-#    environment:
+  #  mongodb:
+  #    image: mongo:latest
+  #    container_name: mongodb
+  #    ports:
+  #      - "27017:27017"
+  #    environment:
 
-#      # These MUST match your application.properties
-#      MONGO_INITDB_ROOT_USERNAME: myuser
-#      MONGO_INITDB_ROOT_PASSWORD: rootpass
-#    volumes:
-#      - mongo_data:/data/db
+  #      # These MUST match your application.properties
+  #      MONGO_INITDB_ROOT_USERNAME: myuser
+  #      MONGO_INITDB_ROOT_PASSWORD: rootpass
+  #    volumes:
+  #      - mongo_data:/data/db
 
   # 2. Service A: Verification
   verification-service:
@@ -76,7 +76,6 @@ services:
       LISTING_SERVICE_BASE_URL: "http://listing-service:8084"
       PAYMENT_SERVICE_BASE_URL: "http://stripe-payment-service:8090"
 
-
   notifications-service:
     build: ./notifications-service
     container_name: notifications_service
@@ -113,6 +112,19 @@ services:
       CLIENTS_ORDERRESERVATIONBASEURL: "http://order-reservation-service:8086"
       INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
 
+  # --- NEW FOLLOW SERVICE ---
+  follow-service:
+    build: ./follow-service
+    container_name: follow-service
+    ports:
+      - "8091:8091"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: "${MONGODB_URI_FOLLOW}"
+      CLIENTS_PROFILE_SERVICE_URL: "http://profile-service:8081"
+    depends_on:
+      - profile-service
+
   api-gateway:
     build:
       context: ./api-gateway
@@ -129,6 +141,7 @@ services:
       - notifications-service
       - community-service
       - review-service
+      - follow-service
       - stripe-payment-service
 
   admin-service:
