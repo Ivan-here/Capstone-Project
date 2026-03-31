@@ -166,7 +166,6 @@ public class OrderReservationService {
 
         order.setStripePaymentIntentId(response.paymentIntentId());
         order.setStripeClientSecret(response.clientSecret());
-        order.setPaymentStatus(PaymentStatus.PAYMENT_PROCESSING);
 
         orderRepository.save(order);
 
@@ -360,6 +359,20 @@ public class OrderReservationService {
                 order.getPaymentStatus().name(),
                 order.isStockDeducted()
         );
+    }
+
+    public PaymentSucceededResponse confirmPaymentForShopper(String orderId, String shopperId, PaymentSucceededRequest request) {
+        Order order = getOrderById(orderId);
+
+        if (shopperId == null || shopperId.isBlank()) {
+            throw new RuntimeException("shopperId is required");
+        }
+
+        if (!shopperId.equals(order.getShopperId())) {
+            throw new RuntimeException("Only the shopper who created the order can confirm payment");
+        }
+
+        return markPaymentSucceeded(orderId, request);
     }
     public Order markReadyForPickup(String orderId, ReadyForPickupRequest request) {
         Order order = getOrderById(orderId);
@@ -585,23 +598,48 @@ public class OrderReservationService {
     }
 
     public List<Order> getOrdersByShopper(String shopperId) {
-        return orderRepository.findByShopperId(shopperId);
+        return orderRepository.findByShopperId(shopperId).stream()
+                .filter(this::shouldIncludeInHistory)
+                .toList();
     }
 
     public List<Order> getOrdersBySeller(String sellerUserId) {
-        return orderRepository.findBySellerUserId(sellerUserId);
+        return orderRepository.findBySellerUserId(sellerUserId).stream()
+                .filter(this::shouldIncludeInHistory)
+                .toList();
     }
 
     public OrderHistoryResponse getOrderHistory(String userId) {
         List<Order> bought = orderRepository.findByShopperId(userId).stream()
+                .filter(this::shouldIncludeInHistory)
                 .sorted(Comparator.comparing(Order::getOrderDate, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
                 .toList();
 
         List<Order> sold = orderRepository.findBySellerUserId(userId).stream()
+                .filter(this::shouldIncludeInHistory)
                 .sorted(Comparator.comparing(Order::getOrderDate, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
                 .toList();
 
         return new OrderHistoryResponse(bought, sold);
+    }
+
+    private boolean shouldIncludeInHistory(Order order) {
+        if (order == null) {
+            return false;
+        }
+
+        if (order.getPaymentStatus() == PaymentStatus.REQUIRES_PAYMENT) {
+            return false;
+        }
+
+        if (order.getStatus() == OrderStatus.CANCELLED
+                && order.getPaymentStatus() == PaymentStatus.CANCELLED
+                && order.getPaidAt() == null
+                && order.getRefundedAt() == null) {
+            return false;
+        }
+
+        return true;
     }
 
     // ================= RESERVATIONS =================

@@ -14,6 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Service
 @RequiredArgsConstructor
 public class StripeConnectService {
@@ -26,6 +29,12 @@ public class StripeConnectService {
 
     @Value("${stripe.refresh-url}")
     private String refreshUrl;
+
+    @Value("${app.frontend-profile-url}")
+    private String frontendProfileUrl;
+
+    @Value("${app.public-platform-base-url}")
+    private String publicPlatformBaseUrl;
 
     public SellerPaymentProfile createConnectedAccount(String userId) throws StripeException {
         BusinessProfile businessProfile = profileServiceClient.getBusinessProfileInternal(userId);
@@ -54,9 +63,18 @@ public class StripeConnectService {
             throw new RuntimeException("Business profile email is required");
         }
 
+        AccountCreateParams.BusinessProfile.Builder businessProfileBuilder = AccountCreateParams.BusinessProfile.builder()
+                .setProductDescription(buildProductDescription(businessProfile));
+
+        String publicSellerProfileUrl = buildPublicSellerProfileUrl(businessProfile.getUserId());
+        if (publicSellerProfileUrl != null) {
+            businessProfileBuilder.setUrl(publicSellerProfileUrl);
+        }
+
         AccountCreateParams params = AccountCreateParams.builder()
                 .setType(AccountCreateParams.Type.EXPRESS)
                 .setEmail(businessProfile.getEmail())
+                .setBusinessProfile(businessProfileBuilder.build())
                 .build();
 
         Account account = Account.create(params);
@@ -130,6 +148,44 @@ public class StripeConnectService {
         return sellerPaymentProfileRepository.findByBusinessProfileId(businessProfile.getId())
                 .orElseThrow(() -> new RuntimeException("Seller payment profile not found"));
     }
+
+    public String buildFrontendReturnUrl(String sellerId, boolean onboardingComplete) {
+        String status = onboardingComplete ? "connected" : "pending";
+        return frontendProfileUrl
+                + "?stripe="
+                + URLEncoder.encode(status, StandardCharsets.UTF_8)
+                + "&sellerId="
+                + URLEncoder.encode(sellerId, StandardCharsets.UTF_8);
+    }
+
+    private String buildProductDescription(BusinessProfile businessProfile) {
+        String businessName = businessProfile.getBusinessName() == null || businessProfile.getBusinessName().isBlank()
+                ? "Seller"
+                : businessProfile.getBusinessName().trim();
+        String businessType = businessProfile.getBusinessType() == null
+                ? "business"
+                : businessProfile.getBusinessType().name().toLowerCase();
+
+        return businessName
+                + " is a "
+                + businessType
+                + " using the platform to accept customer payments for locally listed goods and pickup orders.";
+    }
+
+    private String buildPublicSellerProfileUrl(String userId) {
+        if (publicPlatformBaseUrl == null || publicPlatformBaseUrl.isBlank()) {
+            return null;
+        }
+
+        String normalized = publicPlatformBaseUrl.trim();
+        String lower = normalized.toLowerCase();
+        if (lower.contains("localhost") || lower.contains("127.0.0.1")) {
+            return null;
+        }
+
+        return normalized.replaceAll("/+$", "") + "/profile/" + userId;
+    }
+
     private boolean isSupportedSellerType(BusinessType businessType) {
         return businessType != null &&
                 (businessType == BusinessType.FARMER ||
