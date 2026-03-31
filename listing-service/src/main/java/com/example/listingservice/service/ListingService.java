@@ -8,6 +8,7 @@ import com.example.listingservice.repository.ListingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import com.example.listingservice.client.PaymentClient;
 import com.example.listingservice.client.ProfileClient;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +24,7 @@ public class ListingService {
 
     private final ListingRepository repository;
     private final ProfileClient profileClient;
+    private final PaymentClient paymentClient;
     private final CloudinaryService cloudinaryService;
 
     public Listing createListing(CreateListingDTO dto, List<MultipartFile> images, String expectedBusinessType) {
@@ -37,6 +39,13 @@ public class ListingService {
         String actualType = profile.getBusinessType();
         if (actualType == null || !actualType.equalsIgnoreCase(expectedBusinessType)) {
             throw new RuntimeException("Access Denied: You are a " + actualType + ", but this endpoint is for " + expectedBusinessType + "s.");
+        }
+
+        if ("FARMER".equalsIgnoreCase(expectedBusinessType)) {
+            var paymentProfile = paymentClient.refreshSellerStatus(dto.ownerId());
+            if (paymentProfile == null || !paymentProfile.isReadyToReceivePayments()) {
+                throw new RuntimeException("Farmers must complete payment onboarding before posting listings.");
+            }
         }
 
         List<String> uploadedUrls = new ArrayList<>();
