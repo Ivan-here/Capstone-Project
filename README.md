@@ -9,3 +9,4 @@
 # community service running on 8088
 # review service running on 8089
 # stripe payment service running on 8090
+# follow service is running on 8091
