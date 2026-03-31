@@ -95,6 +95,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         p.setRole("SHOPPER");
         if (req.displayName() != null) p.setDisplayName(req.displayName());
+        if (req.avatarUrl() != null) p.setAvatarUrl(req.avatarUrl());
         if (req.location() != null) p.setLocation(req.location());
         if (req.about() != null) p.setAbout(req.about());
         if (req.phone() != null) p.setPhone(req.phone());
@@ -131,6 +132,7 @@ public class ProfileServiceImpl implements ProfileService {
         b.setBusinessName(req.businessName());
         b.setAddress(req.address());
         b.setEmail(req.email());
+        if (req.avatarUrl() != null) b.setAvatarUrl(req.avatarUrl());
 
         if (req.description() != null) b.setDescription(req.description());
         if (req.hours() != null) b.setHours(req.hours());

@@ -25,6 +25,9 @@ public record PersonalProfileRequest(
 
         String displayName,
 
+        @Size(max = 500, message = "avatarUrl max 500 chars")
+        String avatarUrl,
+
         // optional fields (can be null)
         String role,
         String location,
