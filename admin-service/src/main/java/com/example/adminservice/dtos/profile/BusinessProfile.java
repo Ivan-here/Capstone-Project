@@ -23,6 +23,7 @@ public class BusinessProfile {
     private String address;
 
     private String email;
+    private String avatarUrl;
 
     private boolean verified = false;
 

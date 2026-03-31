@@ -72,6 +72,15 @@ public class OrderReservationController {
         return orderService.markPaymentSucceeded(orderId, request);
     }
 
+    @PostMapping("/orders/{orderId}/confirm-payment")
+    public PaymentSucceededResponse confirmPaymentForShopper(
+            @PathVariable String orderId,
+            @RequestParam String shopperId,
+            @RequestBody PaymentSucceededRequest request
+    ) {
+        return orderService.confirmPaymentForShopper(orderId, shopperId, request);
+    }
+
     @PostMapping("/orders/{orderId}/ready-for-pickup")
     public Order markReadyForPickup(
             @PathVariable String orderId,
