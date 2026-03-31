@@ -7,6 +7,7 @@ import com.locally.orders.order_reservationservice.model.Reservation;
 import com.locally.orders.order_reservationservice.service.OrderReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.locally.orders.order_reservationservice.dtos.CancelOrderRequest;
 
@@ -18,6 +19,11 @@ import java.util.List;
 public class OrderReservationController {
 
     private final OrderReservationService orderService;
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
 
     @PostMapping("/orders")
     @ResponseStatus(HttpStatus.CREATED)

@@ -200,7 +200,8 @@ public class OrderReservationService {
         }
 
         if (order.getStatus() == OrderStatus.PENDING_PAYMENT
-                && order.getPaymentStatus() == PaymentStatus.REQUIRES_PAYMENT) {
+                && (order.getPaymentStatus() == PaymentStatus.REQUIRES_PAYMENT
+                || order.getPaymentStatus() == PaymentStatus.PAYMENT_PROCESSING)) {
 
             order.setCancelledAt(java.time.LocalDateTime.now());
             order.setPaymentStatus(PaymentStatus.CANCELLED);
