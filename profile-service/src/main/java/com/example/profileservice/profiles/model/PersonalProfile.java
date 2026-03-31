@@ -27,6 +27,7 @@ public class PersonalProfile {
     private String about;
     private String username;
     private String displayName;
+    private String avatarUrl;
 
     private String phone;
     private String email;
