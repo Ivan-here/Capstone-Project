@@ -59,6 +59,8 @@ public class OrderReservationService {
         List<OrderItem> orderItems = new ArrayList<>();
         String sellerUserId = null;
         String pickupLocation = null;
+        boolean donationOrder = false;
+        boolean donationOrderInitialized = false;
 
         for (var requestItem : request.items()) {
             ListingClient.ListingDto listing = listingClient.getListing(requestItem.listingId());
@@ -74,6 +76,14 @@ public class OrderReservationService {
                 pickupLocation = listing.getPickupLocation();
             } else if (!sellerUserId.equals(listing.getOwnerId())) {
                 throw new RuntimeException("All items in one order must belong to the same seller");
+            }
+
+            boolean listingIsDonation = isDonationListing(listing);
+            if (!donationOrderInitialized) {
+                donationOrder = listingIsDonation;
+                donationOrderInitialized = true;
+            } else if (donationOrder != listingIsDonation) {
+                throw new RuntimeException("Donation items and paid items cannot be mixed in the same order");
             }
 
             long unitPriceCents = toCents(listing.getPrice());
@@ -107,6 +117,7 @@ public class OrderReservationService {
                 .grossAmountCents(grossAmountCents)
                 .platformFeeCents(platformFeeCents)
                 .sellerAmountCents(sellerAmountCents)
+                .requiresPayment(!donationOrder)
                 .status(OrderStatus.PENDING_PAYMENT)
                 .paymentStatus(PaymentStatus.REQUIRES_PAYMENT)
                 .stockDeducted(false)
@@ -122,7 +133,8 @@ public class OrderReservationService {
                 saved.getStatus().name(),
                 saved.getPaymentStatus().name(),
                 saved.getGrossAmountCents(),
-                saved.getCurrency()
+                saved.getCurrency(),
+                saved.isRequiresPayment()
         );
     }
 
@@ -133,11 +145,16 @@ public class OrderReservationService {
             throw new RuntimeException("Only the shopper who created the order can start payment");
         }
 
+        if (!order.isRequiresPayment()) {
+            throw new RuntimeException("Donation orders do not require payment");
+        }
+
         if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
             throw new RuntimeException("Payment can only be started for PENDING_PAYMENT orders");
         }
 
-        if (order.getPaymentStatus() != PaymentStatus.REQUIRES_PAYMENT) {
+        if (order.getPaymentStatus() != PaymentStatus.REQUIRES_PAYMENT
+                && order.getPaymentStatus() != PaymentStatus.PAYMENT_PROCESSING) {
             throw new RuntimeException("Order is not in a payable state");
         }
 
@@ -147,6 +164,15 @@ public class OrderReservationService {
 
         if (order.getSellerUserId() == null || order.getSellerUserId().isBlank()) {
             throw new RuntimeException("Order seller is missing");
+        }
+
+        if (hasReusablePaymentIntent(order)) {
+            return new OrderPaymentIntentResponse(
+                    order.getId(),
+                    order.getStripePaymentIntentId(),
+                    order.getStripeClientSecret(),
+                    order.getPaymentStatus().name()
+            );
         }
 
         CreatePaymentIntentRequest request = new CreatePaymentIntentRequest(
@@ -166,6 +192,7 @@ public class OrderReservationService {
 
         order.setStripePaymentIntentId(response.paymentIntentId());
         order.setStripeClientSecret(response.clientSecret());
+        order.setPaymentStatus(PaymentStatus.PAYMENT_PROCESSING);
 
         orderRepository.save(order);
 
@@ -213,6 +240,19 @@ public class OrderReservationService {
         if ((order.getStatus() == OrderStatus.PAID || order.getStatus() == OrderStatus.READY_FOR_PICKUP)
                 && order.getPaymentStatus() == PaymentStatus.HELD) {
 
+            if (!order.isRequiresPayment() || order.getStripePaymentIntentId() == null || order.getStripePaymentIntentId().isBlank()) {
+                if (order.isStockDeducted()) {
+                    restoreOrderStock(order);
+                    order.setStockDeducted(false);
+                }
+
+                order.setCancelledAt(java.time.LocalDateTime.now());
+                order.setPaymentStatus(PaymentStatus.CANCELLED);
+                order.updateStatus(OrderStatus.CANCELLED, request.actorUserId());
+
+                return orderRepository.save(order);
+            }
+
             RefundPaymentResponse refundResponse = paymentClient.refundPayment(
                     new RefundPaymentRequest(
                             order.getId(),
@@ -257,6 +297,19 @@ public class OrderReservationService {
         order.updateStatus(OrderStatus.DISPUTED, request.adminUserId());
 
         if (!request.refundPayment()) {
+            return orderRepository.save(order);
+        }
+
+        if (!order.isRequiresPayment() || order.getStripePaymentIntentId() == null || order.getStripePaymentIntentId().isBlank()) {
+            if (order.isStockDeducted()) {
+                restoreOrderStock(order);
+                order.setStockDeducted(false);
+            }
+
+            order.setCancelledAt(LocalDateTime.now());
+            order.setPaymentStatus(PaymentStatus.CANCELLED);
+            order.updateStatus(OrderStatus.CANCELLED, request.adminUserId());
+
             return orderRepository.save(order);
         }
 
@@ -316,49 +369,13 @@ public class OrderReservationService {
             throw new RuntimeException("Payment intent does not match order");
         }
 
-        if (order.getPaymentStatus() != PaymentStatus.PAYMENT_PROCESSING
-                && order.getPaymentStatus() != PaymentStatus.REQUIRES_PAYMENT) {
-            throw new RuntimeException("Order is not in a payment-confirmable state");
-        }
-
-        if (!order.isStockDeducted()) {
-            for (OrderItem item : order.getItems()) {
-                ListingClient.ListingDto listing = listingClient.getListing(item.getListingId());
-
-                if (listing == null) {
-                    throw new RuntimeException("Listing not found during stock deduction: " + item.getListingId());
-                }
-
-                int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
-                if (currentQty < item.getQuantity()) {
-                    throw new RuntimeException("Not enough stock to finalize payment for listing " + item.getListingId());
-                }
-
-                int newQty = currentQty - item.getQuantity();
-                listingClient.updateListingQuantity(item.getListingId(), newQty);
-            }
-
-            order.setStockDeducted(true);
-        }
-
-        String rawPickupCode = generatePickupCode();
-
-        order.setPickupCodeHash(passwordEncoder.encode(rawPickupCode));
-        order.setPickupCodePlain(rawPickupCode);
-        order.setPickupCodeExpiresAt(LocalDateTime.now().plusDays(7));
-        order.setPickupCodeVerified(false);
-        order.setPaidAt(LocalDateTime.now());
-
-        order.setPaymentStatus(PaymentStatus.HELD);
-        order.updateStatus(OrderStatus.PAID, "system");
-
-        orderRepository.save(order);
+        Order finalizedOrder = finalizeOrderAfterCheckout(order, "system");
 
         return new PaymentSucceededResponse(
-                order.getId(),
-                order.getStatus().name(),
-                order.getPaymentStatus().name(),
-                order.isStockDeducted()
+                finalizedOrder.getId(),
+                finalizedOrder.getStatus().name(),
+                finalizedOrder.getPaymentStatus().name(),
+                finalizedOrder.isStockDeducted()
         );
     }
 
@@ -374,6 +391,40 @@ public class OrderReservationService {
         }
 
         return markPaymentSucceeded(orderId, request);
+    }
+
+    public PaymentSucceededResponse confirmDonationForShopper(String orderId, String shopperId) {
+        Order order = getOrderById(orderId);
+
+        if (shopperId == null || shopperId.isBlank()) {
+            throw new RuntimeException("shopperId is required");
+        }
+
+        if (!shopperId.equals(order.getShopperId())) {
+            throw new RuntimeException("Only the shopper who created the order can confirm this donation claim");
+        }
+
+        if (order.isRequiresPayment()) {
+            throw new RuntimeException("This order requires payment and cannot be confirmed as a donation");
+        }
+
+        if (order.getPaymentStatus() == PaymentStatus.HELD || order.getStatus() == OrderStatus.PAID) {
+            return new PaymentSucceededResponse(
+                    order.getId(),
+                    order.getStatus().name(),
+                    order.getPaymentStatus().name(),
+                    order.isStockDeducted()
+            );
+        }
+
+        Order finalizedOrder = finalizeOrderAfterCheckout(order, shopperId);
+
+        return new PaymentSucceededResponse(
+                finalizedOrder.getId(),
+                finalizedOrder.getStatus().name(),
+                finalizedOrder.getPaymentStatus().name(),
+                finalizedOrder.isStockDeducted()
+        );
     }
     public Order markReadyForPickup(String orderId, ReadyForPickupRequest request) {
         Order order = getOrderById(orderId);
@@ -451,6 +502,12 @@ public class OrderReservationService {
         order.setPaymentStatus(PaymentStatus.RELEASE_PENDING);
 
         order = orderRepository.save(order);
+
+        if (!order.isRequiresPayment() || order.getSellerAmountCents() == null || order.getSellerAmountCents() <= 0) {
+            order.setReleasedAt(java.time.LocalDateTime.now());
+            order.setPaymentStatus(PaymentStatus.RELEASED);
+            return orderRepository.save(order);
+        }
 
         ReleaseFundsResponse releaseResponse = paymentClient.releaseFunds(
                 new ReleaseFundsRequest(
@@ -537,8 +594,9 @@ public class OrderReservationService {
             throw new RuntimeException("Listing is not available: " + listing.getId());
         }
 
-        if (listing.getType() == null || !"FARM_PRODUCT".equalsIgnoreCase(listing.getType())) {
-            throw new RuntimeException("Only FARM_PRODUCT listings can be ordered");
+        if (listing.getType() == null || (!"FARM_PRODUCT".equalsIgnoreCase(listing.getType())
+                && !"SURPLUS_FOOD".equalsIgnoreCase(listing.getType()))) {
+            throw new RuntimeException("Only FARM_PRODUCT and SURPLUS_FOOD listings can be ordered");
         }
 
         int availableQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
@@ -553,6 +611,10 @@ public class OrderReservationService {
 
         if (listing.getPrice() == null) {
             throw new RuntimeException("Listing price is missing for listing " + listing.getId());
+        }
+
+        if (isDonationListing(listing) && listing.getPrice().compareTo(BigDecimal.ZERO) != 0) {
+            throw new RuntimeException("SURPLUS_FOOD donation listings must have a price of 0");
         }
     }
 
@@ -641,6 +703,69 @@ public class OrderReservationService {
         }
 
         return true;
+    }
+
+    private boolean hasReusablePaymentIntent(Order order) {
+        if (order == null) {
+            return false;
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            return false;
+        }
+
+        if (order.getPaymentStatus() != PaymentStatus.REQUIRES_PAYMENT
+                && order.getPaymentStatus() != PaymentStatus.PAYMENT_PROCESSING) {
+            return false;
+        }
+
+        return order.getStripePaymentIntentId() != null
+                && !order.getStripePaymentIntentId().isBlank()
+                && order.getStripeClientSecret() != null
+                && !order.getStripeClientSecret().isBlank();
+    }
+
+    private boolean isDonationListing(ListingClient.ListingDto listing) {
+        return listing != null && "SURPLUS_FOOD".equalsIgnoreCase(listing.getType());
+    }
+
+    private Order finalizeOrderAfterCheckout(Order order, String changedBy) {
+        if (order.getPaymentStatus() != PaymentStatus.PAYMENT_PROCESSING
+                && order.getPaymentStatus() != PaymentStatus.REQUIRES_PAYMENT) {
+            throw new RuntimeException("Order is not in a confirmable checkout state");
+        }
+
+        if (!order.isStockDeducted()) {
+            for (OrderItem item : order.getItems()) {
+                ListingClient.ListingDto listing = listingClient.getListing(item.getListingId());
+
+                if (listing == null) {
+                    throw new RuntimeException("Listing not found during stock deduction: " + item.getListingId());
+                }
+
+                int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
+                if (currentQty < item.getQuantity()) {
+                    throw new RuntimeException("Not enough stock to finalize checkout for listing " + item.getListingId());
+                }
+
+                int newQty = currentQty - item.getQuantity();
+                listingClient.updateListingQuantity(item.getListingId(), newQty);
+            }
+
+            order.setStockDeducted(true);
+        }
+
+        String rawPickupCode = generatePickupCode();
+
+        order.setPickupCodeHash(passwordEncoder.encode(rawPickupCode));
+        order.setPickupCodePlain(rawPickupCode);
+        order.setPickupCodeExpiresAt(LocalDateTime.now().plusDays(7));
+        order.setPickupCodeVerified(false);
+        order.setPaidAt(LocalDateTime.now());
+        order.setPaymentStatus(PaymentStatus.HELD);
+        order.updateStatus(OrderStatus.PAID, changedBy);
+
+        return orderRepository.save(order);
     }
 
     // ================= RESERVATIONS =================

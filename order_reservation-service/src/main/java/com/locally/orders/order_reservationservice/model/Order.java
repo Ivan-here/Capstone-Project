@@ -42,6 +42,8 @@ public class Order {
     private Long grossAmountCents;
     private Long platformFeeCents;
     private Long sellerAmountCents;
+    @Builder.Default
+    private boolean requiresPayment = true;
 
     private PaymentStatus paymentStatus;
     private String stripePaymentIntentId;
