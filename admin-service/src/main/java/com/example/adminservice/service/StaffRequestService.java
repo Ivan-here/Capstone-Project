@@ -52,7 +52,7 @@ public class StaffRequestService {
                     "admin-service",
                     referenceType == null ? "STAFF_REQUEST" : referenceType,
                     referenceTargetId == null ? referenceId : referenceTargetId,
-                    "ORDER".equals(referenceType) ? "/admin/orders" : "/admin/notifications"
+                    buildTargetUrl(referenceType, referenceTargetId)
             ));
         }
 
@@ -109,6 +109,13 @@ public class StaffRequestService {
             return null;
         }
         return value.trim().toUpperCase();
+    }
+
+    private String buildTargetUrl(String referenceType, String referenceTargetId) {
+        if ("ORDER".equals(referenceType) && referenceTargetId != null) {
+            return "/admin/orders?orderId=" + referenceTargetId;
+        }
+        return "/admin/notifications?scope=staff";
     }
 
     private String categoryLabel(String category) {

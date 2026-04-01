@@ -4,6 +4,7 @@ import com.example.adminservice.dtos.notification.CreateNotificationRequest;
 import com.example.adminservice.dtos.notification.Notification;
 import com.example.adminservice.service.AdminNotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,8 +22,19 @@ public class AdminNotificationController {
     }
 
     @GetMapping("/user/{userId}")
-    public List<Notification> getNotificationsByUser(@PathVariable String userId) {
-        return adminNotificationService.getNotificationsByUser(userId);
+    public List<Notification> getNotificationsByUser(
+            @PathVariable String userId,
+            @RequestParam(required = false) Boolean read
+    ) {
+        return adminNotificationService.getNotificationsByUser(userId, read);
+    }
+
+    @GetMapping("/me")
+    public List<Notification> getNotificationsForCurrentAdmin(
+            Authentication authentication,
+            @RequestParam(required = false) Boolean read
+    ) {
+        return adminNotificationService.getNotificationsForCurrentAdmin(authentication.getName(), read);
     }
 
     @GetMapping("/{id}")
