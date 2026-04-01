@@ -33,7 +33,15 @@ public class AdminNotificationService {
     }
 
     public List<Notification> getNotificationsByUser(String userId) {
-        return notificationsServiceClient.list(userId);
+        return getNotificationsByUser(userId, null);
+    }
+
+    public List<Notification> getNotificationsByUser(String userId, Boolean read) {
+        return notificationsServiceClient.list(userId, read);
+    }
+
+    public List<Notification> getNotificationsForCurrentAdmin(String userId, Boolean read) {
+        return notificationsServiceClient.list(userId, read);
     }
 
     public Notification getNotificationById(String id) {

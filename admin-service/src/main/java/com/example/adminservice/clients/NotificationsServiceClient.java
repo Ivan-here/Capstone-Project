@@ -16,7 +16,10 @@ public interface NotificationsServiceClient {
     Notification create(@RequestBody Notification notification);
 
     @GetMapping("/notifications")
-    List<Notification> list(@RequestParam("userId") String userId);
+    List<Notification> list(
+            @RequestParam("userId") String userId,
+            @RequestParam(value = "read", required = false) Boolean read
+    );
 
     @GetMapping("/notifications/{id}")
     Notification getById(@PathVariable("id") String id);
