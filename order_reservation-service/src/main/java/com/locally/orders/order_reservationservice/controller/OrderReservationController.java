@@ -87,6 +87,14 @@ public class OrderReservationController {
         return orderService.confirmPaymentForShopper(orderId, shopperId, request);
     }
 
+    @PostMapping("/orders/{orderId}/confirm-donation")
+    public PaymentSucceededResponse confirmDonationForShopper(
+            @PathVariable String orderId,
+            @RequestParam String shopperId
+    ) {
+        return orderService.confirmDonationForShopper(orderId, shopperId);
+    }
+
     @PostMapping("/orders/{orderId}/ready-for-pickup")
     public Order markReadyForPickup(
             @PathVariable String orderId,
