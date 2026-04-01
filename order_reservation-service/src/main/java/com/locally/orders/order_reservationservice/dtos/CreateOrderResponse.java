@@ -5,5 +5,6 @@ public record CreateOrderResponse(
         String status,
         String paymentStatus,
         Long grossAmountCents,
-        String currency
+        String currency,
+        Boolean requiresPayment
 ) {}
