@@ -173,17 +173,34 @@ public class StripeConnectService {
     }
 
     private String buildPublicSellerProfileUrl(String userId) {
-        if (publicPlatformBaseUrl == null || publicPlatformBaseUrl.isBlank()) {
+        String normalized = resolvePublicBaseUrl();
+        if (normalized == null) {
             return null;
         }
 
-        String normalized = publicPlatformBaseUrl.trim();
         String lower = normalized.toLowerCase();
         if (lower.contains("localhost") || lower.contains("127.0.0.1")) {
             return null;
         }
 
         return normalized.replaceAll("/+$", "") + "/profile/" + userId;
+    }
+
+    private String resolvePublicBaseUrl() {
+        if (publicPlatformBaseUrl != null && !publicPlatformBaseUrl.isBlank()) {
+            return publicPlatformBaseUrl.trim();
+        }
+
+        if (frontendProfileUrl == null || frontendProfileUrl.isBlank()) {
+            return null;
+        }
+
+        String normalizedProfileUrl = frontendProfileUrl.trim().replaceAll("/+$", "");
+        int profileIndex = normalizedProfileUrl.toLowerCase().indexOf("/profile");
+        if (profileIndex >= 0) {
+            return normalizedProfileUrl.substring(0, profileIndex);
+        }
+        return normalizedProfileUrl;
     }
 
     private boolean isSupportedSellerType(BusinessType businessType) {

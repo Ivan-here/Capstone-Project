@@ -132,10 +132,12 @@ public class ProfileServiceImpl implements ProfileService {
         b.setBusinessName(req.businessName());
         b.setAddress(req.address());
         b.setEmail(req.email());
+        if (req.phone() != null) b.setPhone(req.phone());
         if (req.avatarUrl() != null) b.setAvatarUrl(req.avatarUrl());
 
         if (req.description() != null) b.setDescription(req.description());
         if (req.hours() != null) b.setHours(req.hours());
+        if (req.pickupAvailability() != null) b.setPickupAvailability(req.pickupAvailability());
         if (req.serviceArea() != null) b.setServiceArea(req.serviceArea());
         if (req.eligibilityNotes() != null) b.setEligibilityNotes(req.eligibilityNotes());
 
