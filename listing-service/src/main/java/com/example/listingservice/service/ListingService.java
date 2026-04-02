@@ -1,6 +1,8 @@
 package com.example.listingservice.service;
 
 import com.example.listingservice.dto.CreateListingDTO;
+import com.example.listingservice.dto.internal.FollowResponseDTO;
+import com.example.listingservice.dto.internal.NotificationRequest;
 import com.example.listingservice.dto.FullUpdateListingDTO;
 import com.example.listingservice.dto.UpdateListingDTO;
 import com.example.listingservice.model.Listing;
@@ -10,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.example.listingservice.client.PaymentClient;
 import com.example.listingservice.client.ProfileClient;
+import com.example.listingservice.client.FollowClient;
+import com.example.listingservice.client.NotificationClient;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
@@ -26,6 +30,8 @@ public class ListingService {
     private final ProfileClient profileClient;
     private final PaymentClient paymentClient;
     private final CloudinaryService cloudinaryService;
+    private final FollowClient followClient;
+    private final NotificationClient notificationClient;
 
     public Listing createListing(CreateListingDTO dto, List<MultipartFile> images, String expectedBusinessType) {
 
@@ -89,8 +95,55 @@ public class ListingService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        return repository.save(listing);
+        Listing savedListing = repository.save(listing);
+        notifyFollowersAboutNewListing(savedListing);
+        return savedListing;
     }
+    private void notifyFollowersAboutNewListing(Listing listing) {
+        if (listing == null || listing.getId() == null || listing.getOwnerId() == null || listing.getOwnerId().isBlank()) {
+            return;
+        }
+
+        try {
+            List<FollowResponseDTO> followers = followClient.getFollowers(listing.getOwnerId());
+            if (followers == null || followers.isEmpty()) {
+                return;
+            }
+
+            String creatorName = listing.getBusinessName() != null && !listing.getBusinessName().isBlank()
+                    ? listing.getBusinessName()
+                    : "A creator you follow";
+
+            String title = "New listing from someone you follow";
+            String message = creatorName + " posted a new listing: " + listing.getTitle() + ".";
+
+            for (FollowResponseDTO follower : followers) {
+                String followerUserId = follower != null && follower.getUser() != null ? follower.getUser().getId() : null;
+                if (followerUserId == null || followerUserId.isBlank()) {
+                    continue;
+                }
+
+                try {
+                    notificationClient.createNotification(new NotificationRequest(
+                            followerUserId,
+                            listing.getOwnerId(),
+                            "FOLLOWING_NEW_LISTING",
+                            title,
+                            message,
+                            "listing-service",
+                            "LISTING",
+                            listing.getId(),
+                            "/product/" + listing.getId()
+                    ));
+                } catch (Exception ex) {
+                    log.warn("Failed to create follower listing notification listingId={} recipientUserId={}", listing.getId(), followerUserId, ex);
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to notify followers about listingId={}", listing.getId(), ex);
+        }
+    }
+
     public Listing getListingById(String id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Listing not found"));
