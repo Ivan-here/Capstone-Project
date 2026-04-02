@@ -23,11 +23,13 @@ public class BusinessProfile {
     private String address;
 
     private String email;
+    private String phone;
     private String avatarUrl;
 
     private boolean verified = false;
 
     private String hours;
+    private String pickupAvailability;
     private String description;
     private String serviceArea;
     private String eligibilityNotes;

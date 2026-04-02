@@ -7,10 +7,12 @@ import com.example.adminservice.clients.ProfileServiceClient;
 import com.example.adminservice.clients.VerificationServiceClient;
 import com.example.adminservice.dtos.dashboard.DashboardStatsResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AdminDashboardService {
 
     private final IdentityServiceClient identityServiceClient;
@@ -20,12 +22,12 @@ public class AdminDashboardService {
     private final ProfileServiceClient profileServiceClient;
 
     public DashboardStatsResponse getStats() {
-        long totalUsers = identityServiceClient.getAllUsers().size();
-        long totalListings = listingServiceClient.getAllAdminListings().size();
-        long pendingVerifications = verificationServiceClient.getQueue().size();
-        long totalOrders = orderReservationServiceClient.getAllOrders().size();
-        long totalReservations = orderReservationServiceClient.getAllReservations().size();
-        long totalBusinessProfiles = profileServiceClient.getAllBusinessProfiles().size();
+        long totalUsers = safeCount("users", () -> identityServiceClient.getAllUsers().size());
+        long totalListings = safeCount("listings", () -> listingServiceClient.getAllAdminListings().size());
+        long pendingVerifications = safeCount("pending verifications", () -> verificationServiceClient.getQueue().size());
+        long totalOrders = safeCount("orders", () -> orderReservationServiceClient.getAllOrders().size());
+        long totalReservations = safeCount("reservations", () -> orderReservationServiceClient.getAllReservations().size());
+        long totalBusinessProfiles = safeCount("business profiles", () -> profileServiceClient.getAllBusinessProfiles().size());
 
         return DashboardStatsResponse.builder()
                 .totalUsers(totalUsers)
@@ -35,5 +37,19 @@ public class AdminDashboardService {
                 .totalReservations(totalReservations)
                 .totalBusinessProfiles(totalBusinessProfiles)
                 .build();
+    }
+
+    private long safeCount(String label, CountSupplier supplier) {
+        try {
+            return supplier.get();
+        } catch (Exception ex) {
+            log.warn("Failed to load admin dashboard {} count: {}", label, ex.getMessage());
+            return 0L;
+        }
+    }
+
+    @FunctionalInterface
+    private interface CountSupplier {
+        long get();
     }
 }
