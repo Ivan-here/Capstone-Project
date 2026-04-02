@@ -44,7 +44,6 @@ public class ListingController {
             @RequestPart(value = "images", required = false) List<MultipartFile> images) {
         return service.createListing(dto, images, "RESTAURANT");
     }
-
     // --- THE BULLETPROOF FIX ---
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
@@ -61,20 +60,32 @@ public class ListingController {
                 .toList();
 
         // 3. OWNER HUB: See all your personal items (both PUBLIC and NGO_ONLY)
+        // (Owners need to see expired/out-of-stock items so they can manage/delete them)
         if (userId != null && !userId.isEmpty()) {
             return activeListings.stream()
                     .filter(listing -> userId.equals(listing.getOwnerId()))
                     .toList();
         }
-// --- UPDATED NGO CHECK: Be more flexible with the role string ---
+
+        // --- NEW: THE PURCHASABLE FILTER ---
+        // Ensure items have stock and have not passed their expiry date
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        List<Listing> purchasableListings = activeListings.stream()
+                .filter(listing -> listing.getQuantity() != null && listing.getQuantity() > 0)
+                .filter(listing -> !"OUT_OF_STOCK".equalsIgnoreCase(listing.getStatus()))
+                .filter(listing -> listing.getExpiryDate() == null || listing.getExpiryDate().isAfter(now))
+                .toList();
+
+        // 4. UPDATED NGO CHECK: Be more flexible with the role string ---
         boolean isNgo = role != null && (role.equalsIgnoreCase("NGO") || role.toUpperCase().contains("NGO"));
 
         if (isNgo) {
-            // Return EVERYTHING that is active (Public + NGO_ONLY)
-            return activeListings;
+            // Return EVERYTHING that is purchasable (Public + NGO_ONLY)
+            return purchasableListings;
         }
-        // 5. PUBLIC BROWSE (Shoppers): Keep only PUBLIC items (and old items with null visibility)
-        return activeListings.stream()
+
+        // 5. PUBLIC BROWSE (Shoppers): Keep only PUBLIC items that are purchasable
+        return purchasableListings.stream()
                 .filter(listing -> {
                     String vis = listing.getVisibility();
                     // If visibility is missing (old data) OR it equals PUBLIC, show it!
