@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 public class FlatUserDTO {
     private String id;
     private String displayName;
+    private String username;
     private String role;
     private String avatarUrl;
 }
