@@ -17,7 +17,6 @@ import java.util.List;
 public class DonationScheduler {
 
     private final ListingRepository repository;
-
     @Scheduled(fixedRate = 3600000) // Runs every hour
     public void updateDonationVisibility() {
         List<Listing> exclusiveListings = repository.findByVisibility("NGO_ONLY");
