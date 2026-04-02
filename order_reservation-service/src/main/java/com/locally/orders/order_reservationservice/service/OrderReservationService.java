@@ -1,6 +1,7 @@
 package com.locally.orders.order_reservationservice.service;
 
 import com.locally.orders.order_reservationservice.client.ListingClient;
+import com.locally.orders.order_reservationservice.client.NotificationClient;
 import com.locally.orders.order_reservationservice.dtos.*;
 import com.locally.orders.order_reservationservice.model.Order;
 import com.locally.orders.order_reservationservice.model.OrderItem;
@@ -15,8 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.locally.orders.order_reservationservice.client.PaymentClient;
-
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -42,6 +41,7 @@ public class OrderReservationService {
     private final ReservationRepository reservationRepository;
     private final ListingClient listingClient;
     private final PaymentClient paymentClient;
+    private final NotificationClient notificationClient;
 
     @Value("${platform.fee-percent}")
     private double platformFeePercent;
@@ -190,11 +190,12 @@ public class OrderReservationService {
             throw new RuntimeException("Payment service did not return a response");
         }
 
+        PaymentStatus previousPaymentStatus = order.getPaymentStatus();
         order.setStripePaymentIntentId(response.paymentIntentId());
         order.setStripeClientSecret(response.clientSecret());
         order.setPaymentStatus(PaymentStatus.PAYMENT_PROCESSING);
 
-        orderRepository.save(order);
+        order = saveOrderAndNotify(order, order.getStatus(), previousPaymentStatus, shopperId);
 
         return new OrderPaymentIntentResponse(
                 order.getId(),
@@ -230,11 +231,13 @@ public class OrderReservationService {
                 && (order.getPaymentStatus() == PaymentStatus.REQUIRES_PAYMENT
                 || order.getPaymentStatus() == PaymentStatus.PAYMENT_PROCESSING)) {
 
+            OrderStatus previousStatus = order.getStatus();
+            PaymentStatus previousPaymentStatus = order.getPaymentStatus();
             order.setCancelledAt(java.time.LocalDateTime.now());
             order.setPaymentStatus(PaymentStatus.CANCELLED);
             order.updateStatus(OrderStatus.CANCELLED, request.actorUserId());
 
-            return orderRepository.save(order);
+            return saveOrderAndNotify(order, previousStatus, previousPaymentStatus, request.actorUserId());
         }
 
         if ((order.getStatus() == OrderStatus.PAID || order.getStatus() == OrderStatus.READY_FOR_PICKUP)
@@ -246,11 +249,13 @@ public class OrderReservationService {
                     order.setStockDeducted(false);
                 }
 
+                OrderStatus previousStatus = order.getStatus();
+                PaymentStatus previousPaymentStatus = order.getPaymentStatus();
                 order.setCancelledAt(java.time.LocalDateTime.now());
                 order.setPaymentStatus(PaymentStatus.CANCELLED);
                 order.updateStatus(OrderStatus.CANCELLED, request.actorUserId());
 
-                return orderRepository.save(order);
+                return saveOrderAndNotify(order, previousStatus, previousPaymentStatus, request.actorUserId());
             }
 
             RefundPaymentResponse refundResponse = paymentClient.refundPayment(
@@ -271,13 +276,15 @@ public class OrderReservationService {
                 order.setStockDeducted(false);
             }
 
+            OrderStatus previousStatus = order.getStatus();
+            PaymentStatus previousPaymentStatus = order.getPaymentStatus();
             order.setStripeRefundId(refundResponse.refundId());
             order.setRefundedAt(java.time.LocalDateTime.now());
             order.setCancelledAt(java.time.LocalDateTime.now());
             order.setPaymentStatus(PaymentStatus.REFUNDED);
             order.updateStatus(OrderStatus.CANCELLED, request.actorUserId());
 
-            return orderRepository.save(order);
+            return saveOrderAndNotify(order, previousStatus, previousPaymentStatus, request.actorUserId());
         }
 
         throw new RuntimeException("Order cannot be cancelled in its current state");
@@ -294,10 +301,12 @@ public class OrderReservationService {
             throw new RuntimeException("reason is required");
         }
 
+        OrderStatus previousStatus = order.getStatus();
+        PaymentStatus previousPaymentStatus = order.getPaymentStatus();
         order.updateStatus(OrderStatus.DISPUTED, request.adminUserId());
 
         if (!request.refundPayment()) {
-            return orderRepository.save(order);
+            return saveOrderAndNotify(order, previousStatus, previousPaymentStatus, request.adminUserId());
         }
 
         if (!order.isRequiresPayment() || order.getStripePaymentIntentId() == null || order.getStripePaymentIntentId().isBlank()) {
@@ -310,7 +319,7 @@ public class OrderReservationService {
             order.setPaymentStatus(PaymentStatus.CANCELLED);
             order.updateStatus(OrderStatus.CANCELLED, request.adminUserId());
 
-            return orderRepository.save(order);
+            return saveOrderAndNotify(order, previousStatus, previousPaymentStatus, request.adminUserId());
         }
 
         if (order.getPaymentStatus() != PaymentStatus.HELD) {
@@ -345,7 +354,7 @@ public class OrderReservationService {
         order.setPaymentStatus(PaymentStatus.REFUNDED);
         order.updateStatus(OrderStatus.CANCELLED, request.adminUserId());
 
-        return orderRepository.save(order);
+        return saveOrderAndNotify(order, previousStatus, previousPaymentStatus, request.adminUserId());
     }
 
     public PaymentSucceededResponse markPaymentSucceeded(String orderId, PaymentSucceededRequest request) {
@@ -445,10 +454,12 @@ public class OrderReservationService {
             throw new RuntimeException("Order payment must be HELD before pickup");
         }
 
+        OrderStatus previousStatus = order.getStatus();
+        PaymentStatus previousPaymentStatus = order.getPaymentStatus();
         order.setReadyForPickupAt(java.time.LocalDateTime.now());
         order.updateStatus(OrderStatus.READY_FOR_PICKUP, request.sellerUserId());
 
-        return orderRepository.save(order);
+        return saveOrderAndNotify(order, previousStatus, previousPaymentStatus, request.sellerUserId());
     }
 
     public Order verifyPickupCode(String orderId, VerifyPickupCodeRequest request) {
@@ -496,17 +507,20 @@ public class OrderReservationService {
         order.setPickupVerifiedAt(java.time.LocalDateTime.now());
         order.setPickupVerifiedBy(request.sellerUserId());
         order.setPickupCodePlain(null);
+        OrderStatus previousStatus = order.getStatus();
+        PaymentStatus previousPaymentStatus = order.getPaymentStatus();
         order.updateStatus(OrderStatus.PICKUP_CODE_VERIFIED, request.sellerUserId());
         order.setCompletedAt(java.time.LocalDateTime.now());
         order.updateStatus(OrderStatus.COMPLETED, request.sellerUserId());
         order.setPaymentStatus(PaymentStatus.RELEASE_PENDING);
 
-        order = orderRepository.save(order);
+        order = saveOrderAndNotify(order, previousStatus, previousPaymentStatus, request.sellerUserId());
 
         if (!order.isRequiresPayment() || order.getSellerAmountCents() == null || order.getSellerAmountCents() <= 0) {
+            PaymentStatus releasePreviousPaymentStatus = order.getPaymentStatus();
             order.setReleasedAt(java.time.LocalDateTime.now());
             order.setPaymentStatus(PaymentStatus.RELEASED);
-            return orderRepository.save(order);
+            return saveOrderAndNotify(order, order.getStatus(), releasePreviousPaymentStatus, request.sellerUserId());
         }
 
         ReleaseFundsResponse releaseResponse = paymentClient.releaseFunds(
@@ -522,11 +536,12 @@ public class OrderReservationService {
             throw new RuntimeException("Funds release failed");
         }
 
+        PaymentStatus releasePreviousPaymentStatus = order.getPaymentStatus();
         order.setStripeTransferId(releaseResponse.transferId());
         order.setReleasedAt(java.time.LocalDateTime.now());
         order.setPaymentStatus(PaymentStatus.RELEASED);
 
-        return orderRepository.save(order);
+        return saveOrderAndNotify(order, order.getStatus(), releasePreviousPaymentStatus, request.sellerUserId());
     }
 
     private String generatePickupCode() {
@@ -757,6 +772,8 @@ public class OrderReservationService {
 
         String rawPickupCode = generatePickupCode();
 
+        OrderStatus previousStatus = order.getStatus();
+        PaymentStatus previousPaymentStatus = order.getPaymentStatus();
         order.setPickupCodeHash(passwordEncoder.encode(rawPickupCode));
         order.setPickupCodePlain(rawPickupCode);
         order.setPickupCodeExpiresAt(LocalDateTime.now().plusDays(7));
@@ -765,7 +782,82 @@ public class OrderReservationService {
         order.setPaymentStatus(PaymentStatus.HELD);
         order.updateStatus(OrderStatus.PAID, changedBy);
 
-        return orderRepository.save(order);
+        return saveOrderAndNotify(order, previousStatus, previousPaymentStatus, changedBy);
+    }
+
+    private Order saveOrderAndNotify(Order order, OrderStatus previousStatus, PaymentStatus previousPaymentStatus, String actorUserId) {
+        Order savedOrder = orderRepository.save(order);
+        notifyOrderAndPaymentChanges(savedOrder, previousStatus, previousPaymentStatus, actorUserId);
+        return savedOrder;
+    }
+
+    private void notifyOrderAndPaymentChanges(Order order, OrderStatus previousStatus, PaymentStatus previousPaymentStatus, String actorUserId) {
+        String normalizedActorUserId = normalizeActorUserId(actorUserId, order);
+
+        if (previousStatus != order.getStatus()) {
+            notifyOrderParticipants(
+                    order,
+                    normalizedActorUserId,
+                    "ORDER_STATUS_CHANGED",
+                    "Order status updated",
+                    "Order #" + order.getId() + " is now " + humanizeEnum(order.getStatus().name()) + "."
+            );
+        }
+
+        if (previousPaymentStatus != order.getPaymentStatus()) {
+            notifyOrderParticipants(
+                    order,
+                    normalizedActorUserId,
+                    "PAYMENT_STATUS_CHANGED",
+                    "Payment status updated",
+                    "Payment for order #" + order.getId() + " is now " + humanizeEnum(order.getPaymentStatus().name()) + "."
+            );
+        }
+    }
+
+    private void notifyOrderParticipants(Order order, String actorUserId, String type, String title, String message) {
+        sendNotification(order.getShopperId(), actorUserId, type, title, message, order.getId());
+        if (order.getSellerUserId() != null && !order.getSellerUserId().equals(order.getShopperId())) {
+            sendNotification(order.getSellerUserId(), actorUserId, type, title, message, order.getId());
+        }
+    }
+
+    private void sendNotification(String userId, String actorUserId, String type, String title, String message, String orderId) {
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
+
+        try {
+            notificationClient.createNotification(new NotificationRequest(
+                    userId,
+                    actorUserId,
+                    type,
+                    title,
+                    message,
+                    "order_reservation-service",
+                    "ORDER",
+                    orderId,
+                    "/orders/" + orderId
+            ));
+        } catch (Exception ex) {
+            System.err.println("Failed to create notification for order " + orderId + " and user " + userId + ": " + ex.getMessage());
+        }
+    }
+
+    private String normalizeActorUserId(String actorUserId, Order order) {
+        if (actorUserId == null || actorUserId.isBlank()) {
+            return null;
+        }
+
+        if (actorUserId.equals(order.getShopperId()) || actorUserId.equals(order.getSellerUserId())) {
+            return actorUserId;
+        }
+
+        return null;
+    }
+
+    private String humanizeEnum(String raw) {
+        return raw == null ? "updated" : raw.replace('_', ' ').toLowerCase();
     }
 
     // ================= RESERVATIONS =================
