@@ -25,6 +25,9 @@ public record BusinessProfileRequest(
         @Size(max = 120, message = "email max 120 chars")
         String email,
 
+        @Size(max = 40, message = "phone max 40 chars")
+        String phone,
+
         @Size(max = 500, message = "avatarUrl max 500 chars")
         String avatarUrl,
 
@@ -32,6 +35,7 @@ public record BusinessProfileRequest(
         @Size(max = 1000, message = "description max 1000 chars")
         String description,
         String hours,
+        String pickupAvailability,
         String serviceArea,
         String eligibilityNotes
 ) {}
