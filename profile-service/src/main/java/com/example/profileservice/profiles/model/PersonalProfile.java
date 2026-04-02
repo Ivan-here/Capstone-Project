@@ -31,6 +31,8 @@ public class PersonalProfile {
 
     private String phone;
     private String email;
+    private ContactVisibility emailVisibility = ContactVisibility.PRIVATE;
+    private ContactVisibility phoneVisibility = ContactVisibility.PRIVATE;
 
     private List<String> addresses = new ArrayList<>();
     private List<String> preferences = new ArrayList<>();

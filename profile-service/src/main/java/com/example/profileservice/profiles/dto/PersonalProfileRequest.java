@@ -1,6 +1,7 @@
 package com.example.profileservice.profiles.dto;
 
 import com.example.profileservice.profiles.model.PersonalProfile;
+import com.example.profileservice.profiles.model.ContactVisibility;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -32,7 +33,11 @@ public record PersonalProfileRequest(
         String role,
         String location,
         String about,
+        @NotBlank(message = "phone is required")
+        @Size(max = 40, message = "phone max 40 chars")
         String phone,
+        ContactVisibility emailVisibility,
+        ContactVisibility phoneVisibility,
         List<String> addresses,
         List<String> preferences,
         PersonalProfile.Stats stats,
