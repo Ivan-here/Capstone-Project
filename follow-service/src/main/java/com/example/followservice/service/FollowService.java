@@ -1,7 +1,9 @@
 package com.example.followservice.service;
 
 import com.example.followservice.client.ProfileClient;
+import com.example.followservice.client.NotificationClient;
 import com.example.followservice.dto.FlatUserDTO;
+import com.example.followservice.dto.NotificationRequest;
 import com.example.followservice.dto.FollowResponseDTO;
 import com.example.followservice.dto.UserProfileDTO;
 import com.example.followservice.model.ConnectionStatus;
@@ -17,6 +19,7 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final ProfileClient profileClient;
+    private final NotificationClient notificationClient;
 
     public void followUser(String followerId, String followingId) {
         if (followerId.equals(followingId)) throw new IllegalArgumentException("Cannot follow yourself");
@@ -29,6 +32,28 @@ public class FollowService {
             return;
         }
         followRepository.save(new Follow(followerId, followingId));
+        createFollowNotification(followerId, followingId);
+    }
+
+    private void createFollowNotification(String followerId, String followingId) {
+        try {
+            UserProfileDTO followerProfile = fetchProfileSafely(followerId);
+            String followerDisplayName = resolveFollowerDisplayName(followerProfile);
+
+            notificationClient.createNotification(new NotificationRequest(
+                    followingId,
+                    followerId,
+                    "NEW_FOLLOWER",
+                    "New follower",
+                    followerDisplayName + " started following you.",
+                    "follow-service",
+                    "FOLLOW",
+                    followerId,
+                    "/profile/" + followerId
+            ));
+        } catch (Exception e) {
+            System.err.println("Failed to create follow notification for target " + followingId + ": " + e.getMessage());
+        }
     }
 
     public void unfollowUser(String followerId, String followingId) {
@@ -63,7 +88,7 @@ public class FollowService {
             boolean isMutual = followRepository.existsByFollowerIdAndFollowingIdAndStatus(userId, f.getFollowerId(), ConnectionStatus.ACTIVE);
 
             // Create a flat object for React
-            FlatUserDTO flatUser = new FlatUserDTO(rawUser.extractId(), rawUser.extractDisplayName(), rawUser.extractRole(), rawUser.extractAvatarUrl());
+            FlatUserDTO flatUser = new FlatUserDTO(rawUser.extractId(), rawUser.extractDisplayName(), rawUser.extractUsername(), rawUser.extractRole(), rawUser.extractAvatarUrl());
 
             return new FollowResponseDTO(f.getId(), flatUser, isMutual, f.getCreatedAt());
         }).toList();
@@ -77,10 +102,18 @@ public class FollowService {
             boolean isMutual = followRepository.existsByFollowerIdAndFollowingIdAndStatus(f.getFollowingId(), userId, ConnectionStatus.ACTIVE);
 
             // Create a flat object for React
-            FlatUserDTO flatUser = new FlatUserDTO(rawUser.extractId(), rawUser.extractDisplayName(), rawUser.extractRole(), rawUser.extractAvatarUrl());
+            FlatUserDTO flatUser = new FlatUserDTO(rawUser.extractId(), rawUser.extractDisplayName(), rawUser.extractUsername(), rawUser.extractRole(), rawUser.extractAvatarUrl());
 
             return new FollowResponseDTO(f.getId(), flatUser, isMutual, f.getCreatedAt());
         }).toList();
+    }
+
+    private String resolveFollowerDisplayName(UserProfileDTO profile) {
+        String candidate = profile != null ? profile.extractDisplayName() : null;
+        if (candidate == null || candidate.isBlank()) {
+            return "Someone";
+        }
+        return candidate.trim();
     }
 
     // Helper method
@@ -90,7 +123,7 @@ public class FollowService {
         } catch (Exception e) {
             System.err.println("Failed to fetch profile: " + targetUserId);
             UserProfileDTO fallback = new UserProfileDTO();
-            fallback.setUserId(targetUserId); // At least give React the ID!
+            fallback.setUserId(targetUserId);
             return fallback;
         }
     }
