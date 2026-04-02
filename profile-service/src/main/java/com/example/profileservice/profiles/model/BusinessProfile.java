@@ -24,6 +24,8 @@ public class BusinessProfile {
 
     private String email;
     private String phone;
+    private ContactVisibility emailVisibility = ContactVisibility.PUBLIC;
+    private ContactVisibility phoneVisibility = ContactVisibility.PUBLIC;
     private String avatarUrl;
 
     private boolean verified = false;

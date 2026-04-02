@@ -6,6 +6,7 @@ import com.example.profileservice.profiles.dto.PersonalProfileRequest;
 import com.example.profileservice.profiles.dto.ProfileResponse;
 import com.example.profileservice.profiles.model.BusinessProfile;
 import com.example.profileservice.profiles.model.BusinessType;
+import com.example.profileservice.profiles.model.ContactVisibility;
 import com.example.profileservice.profiles.model.PersonalProfile;
 import com.example.profileservice.profiles.repo.BusinessProfileRepository;
 import com.example.profileservice.profiles.repo.PersonalProfileRepository;
@@ -79,6 +80,8 @@ public class ProfileServiceImpl implements ProfileService {
         if (isNew) {
             p.setUserId(userId);
             p.setCreatedAt(Instant.now());
+            p.setEmailVisibility(ContactVisibility.PRIVATE);
+            p.setPhoneVisibility(ContactVisibility.PRIVATE);
         }
 
         p.setFirstName(req.firstName());
@@ -99,6 +102,8 @@ public class ProfileServiceImpl implements ProfileService {
         if (req.location() != null) p.setLocation(req.location());
         if (req.about() != null) p.setAbout(req.about());
         if (req.phone() != null) p.setPhone(req.phone());
+        p.setEmailVisibility(req.emailVisibility() != null ? req.emailVisibility() : defaultPersonalVisibility(p.getEmailVisibility()));
+        p.setPhoneVisibility(req.phoneVisibility() != null ? req.phoneVisibility() : defaultPersonalVisibility(p.getPhoneVisibility()));
 
         if (req.addresses() != null) p.setAddresses(req.addresses());
         if (req.preferences() != null) p.setPreferences(req.preferences());
@@ -119,6 +124,8 @@ public class ProfileServiceImpl implements ProfileService {
             b.setUserId(userId);
             b.setCreatedAt(Instant.now());
             b.setVerified(false);
+            b.setEmailVisibility(ContactVisibility.PUBLIC);
+            b.setPhoneVisibility(ContactVisibility.PUBLIC);
         }
 
         boolean businessTypeChanged = !isNew && b.getBusinessType() != req.businessType();
@@ -133,6 +140,8 @@ public class ProfileServiceImpl implements ProfileService {
         b.setAddress(req.address());
         b.setEmail(req.email());
         if (req.phone() != null) b.setPhone(req.phone());
+        b.setEmailVisibility(req.emailVisibility() != null ? req.emailVisibility() : defaultBusinessVisibility(b.getEmailVisibility()));
+        b.setPhoneVisibility(req.phoneVisibility() != null ? req.phoneVisibility() : defaultBusinessVisibility(b.getPhoneVisibility()));
         if (req.avatarUrl() != null) b.setAvatarUrl(req.avatarUrl());
 
         if (req.description() != null) b.setDescription(req.description());
@@ -335,5 +344,13 @@ public class ProfileServiceImpl implements ProfileService {
             return businessProfile.getBusinessName().trim();
         }
         return "User";
+    }
+
+    private ContactVisibility defaultPersonalVisibility(ContactVisibility visibility) {
+        return visibility != null ? visibility : ContactVisibility.PRIVATE;
+    }
+
+    private ContactVisibility defaultBusinessVisibility(ContactVisibility visibility) {
+        return visibility != null ? visibility : ContactVisibility.PUBLIC;
     }
 }
