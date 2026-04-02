@@ -5,4 +5,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "review-service"
+rootProject.name = "verification-service"

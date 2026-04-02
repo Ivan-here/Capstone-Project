@@ -35,6 +35,8 @@ services:
       SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_LISTING}"
       PAYMENT_SERVICE_BASE_URL: "http://stripe-payment-service:8090"
+      NOTIFICATIONS_SERVICE_BASE_URL: "http://notifications-service:8085"
+      FOLLOW_SERVICE_BASE_URL: "http://follow-service:8091"
 
   identity-service:
     build:
@@ -75,6 +77,7 @@ services:
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_ORDER}"
       LISTING_SERVICE_BASE_URL: "http://listing-service:8084"
       PAYMENT_SERVICE_BASE_URL: "http://stripe-payment-service:8090"
+      NOTIFICATIONS_SERVICE_BASE_URL: "http://notifications-service:8085"
 
   notifications-service:
     build: ./notifications-service
@@ -122,6 +125,7 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_FOLLOW}"
       CLIENTS_PROFILE_SERVICE_URL: "http://profile-service:8081"
+      NOTIFICATIONS_SERVICE_URL: "http://notifications-service:8085"
     depends_on:
       - profile-service
 
