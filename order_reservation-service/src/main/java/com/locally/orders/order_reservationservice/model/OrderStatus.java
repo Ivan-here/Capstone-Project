@@ -1,6 +1,7 @@
 package com.locally.orders.order_reservationservice.model;
 
 public enum OrderStatus {
+    PENDING,
     PENDING_PAYMENT,
     PAID,
     CONFIRMED,
