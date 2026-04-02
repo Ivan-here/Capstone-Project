@@ -1,6 +1,7 @@
 package com.example.profileservice.profiles.dto;
 
 import com.example.profileservice.profiles.model.BusinessType;
+import com.example.profileservice.profiles.model.ContactVisibility;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -25,8 +26,12 @@ public record BusinessProfileRequest(
         @Size(max = 120, message = "email max 120 chars")
         String email,
 
+        @NotBlank(message = "phone is required")
         @Size(max = 40, message = "phone max 40 chars")
         String phone,
+
+        ContactVisibility emailVisibility,
+        ContactVisibility phoneVisibility,
 
         @Size(max = 500, message = "avatarUrl max 500 chars")
         String avatarUrl,
