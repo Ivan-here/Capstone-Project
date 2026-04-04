@@ -24,6 +24,9 @@ services:
       SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
       INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_VERIFICATION}"
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
 
   listing-service:
     build: ./listing-service
@@ -37,6 +40,9 @@ services:
       PAYMENT_SERVICE_BASE_URL: "http://stripe-payment-service:8090"
       NOTIFICATIONS_SERVICE_BASE_URL: "http://notifications-service:8085"
       FOLLOW_SERVICE_BASE_URL: "http://follow-service:8091"
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
 
   identity-service:
     build:
@@ -136,6 +142,7 @@ services:
       - "9000:9000"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      CORS_ALLOWED_ORIGIN_PATTERNS: "${CORS_ALLOWED_ORIGIN_PATTERNS}"
     depends_on:
       - identity-service
       - profile-service
@@ -186,6 +193,10 @@ services:
       STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET}"
       STRIPE_RETURN_URL: "${STRIPE_RETURN_URL}"
       STRIPE_REFRESH_URL: "${STRIPE_REFRESH_URL}"
+      FRONTEND_PROFILE_URL: "${FRONTEND_PROFILE_URL}"
+      PUBLIC_PLATFORM_BASE_URL: "${PUBLIC_PLATFORM_BASE_URL}"
+      PROFILE_SERVICE_BASE_URL: "http://profile-service:8081"
+      ORDER_SERVICE_BASE_URL: "http://order-reservation-service:8086"
       CLIENTS_PROFILEBASEURL: "http://profile-service:8081"
       CLIENTS_ORDERBASEURL: "http://order-reservation-service:8086"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_PAYMENT}"
