@@ -17,7 +17,8 @@ jobs:
       - name: Setup SSH to EC2
         shell: bash
         run: |
-          set -euo pipefail
+          echo "Using shell: $SHELL"
+          echo "Home: $HOME"
           mkdir -p "$HOME/.ssh"
           printf '%s' "${{ secrets.EC2_SSH_KEY }}" > "$HOME/.ssh/id_rsa"
           chmod 600 "$HOME/.ssh/id_rsa"
@@ -26,7 +27,6 @@ jobs:
       - name: Deploy backend
         shell: bash
         run: |
-          set -euo pipefail
           ssh "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" '
             cd "${{ secrets.EC2_APP_DIR }}" &&
             git checkout main &&
