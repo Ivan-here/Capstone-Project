@@ -112,6 +112,15 @@ public class ListingController {
         return service.closeListing(id);
     }
 
+    @PatchMapping("/{id}/status")
+    @ResponseStatus(HttpStatus.OK)
+    public Listing updateStatus(
+            @PathVariable String id,
+            @RequestParam String status
+    ) {
+        return service.updateStatus(id, status);
+    }
+
     @PatchMapping("/{id}/quantity")
     @ResponseStatus(HttpStatus.OK)
     public Listing updateStock(@PathVariable String id, @Valid @RequestBody UpdateListingDTO dto) {
