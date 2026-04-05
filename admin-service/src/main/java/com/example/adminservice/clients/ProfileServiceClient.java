@@ -54,4 +54,7 @@ public interface ProfileServiceClient {
 
     @DeleteMapping("/internal/profiles/{userId}/business")
     void deleteBusinessProfileInternal(@PathVariable("userId") String userId);
+
+    @DeleteMapping("/profiles/me/settings/internal/account/{userId}")
+    void deleteAccountInternal(@PathVariable("userId") String userId);
 }
