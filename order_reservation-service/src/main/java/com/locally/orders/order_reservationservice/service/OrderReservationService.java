@@ -905,7 +905,9 @@ public class OrderReservationService {
         existing.setSurplusItemId(updatedReservation.getSurplusItemId());
 
         if (updatedReservation.getStatus() != null && !updatedReservation.getStatus().isBlank()) {
-            if ("CANCELLED".equalsIgnoreCase(updatedReservation.getStatus())
+            String normalizedStatus = normalizeReservationStatus(updatedReservation.getStatus());
+
+            if ("CANCELLED".equalsIgnoreCase(normalizedStatus)
                     && !"CANCELLED".equalsIgnoreCase(existing.getStatus())) {
                 var listing = listingClient.getListing(existing.getSurplusItemId());
                 if (listing != null) {
@@ -914,7 +916,7 @@ public class OrderReservationService {
                 }
             }
 
-            existing.setStatus(updatedReservation.getStatus());
+            existing.setStatus(normalizedStatus);
         }
 
         return reservationRepository.save(existing);
@@ -922,8 +924,9 @@ public class OrderReservationService {
 
     public Reservation updateReservationStatus(String id, String status) {
         Reservation reservation = getReservationById(id);
+        String normalizedStatus = normalizeReservationStatus(status);
 
-        if ("CANCELLED".equalsIgnoreCase(status) && !"CANCELLED".equalsIgnoreCase(reservation.getStatus())) {
+        if ("CANCELLED".equalsIgnoreCase(normalizedStatus) && !"CANCELLED".equalsIgnoreCase(reservation.getStatus())) {
             var listing = listingClient.getListing(reservation.getSurplusItemId());
             if (listing != null) {
                 int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
@@ -931,7 +934,7 @@ public class OrderReservationService {
             }
         }
 
-        reservation.setStatus(status);
+        reservation.setStatus(normalizedStatus);
         return reservationRepository.save(reservation);
     }
 
@@ -947,5 +950,13 @@ public class OrderReservationService {
         }
 
         reservationRepository.delete(existing);
+    }
+
+    private String normalizeReservationStatus(String status) {
+        String normalized = status == null ? "" : status.trim().toUpperCase();
+        if ("CANCELED".equals(normalized)) {
+            return "CANCELLED";
+        }
+        return normalized;
     }
 }
