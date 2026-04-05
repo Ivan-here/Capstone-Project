@@ -25,6 +25,10 @@ public class AdminListingService {
         return listingServiceClient.closeListing(id);
     }
 
+    public Listing updateListingStatus(String id, String status) {
+        return listingServiceClient.updateListingStatus(id, status);
+    }
+
     public void deleteListing(String id) {
         listingServiceClient.deleteListingById(id);
     }

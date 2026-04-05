@@ -29,6 +29,14 @@ public class AdminListingController {
         return adminListingService.closeListing(id);
     }
 
+    @PatchMapping("/{id}/status")
+    public Listing updateListingStatus(
+            @PathVariable String id,
+            @RequestParam String status
+    ) {
+        return adminListingService.updateListingStatus(id, status);
+    }
+
     @DeleteMapping("/{id}")
     public void deleteListing(@PathVariable String id) {
         adminListingService.deleteListing(id);
