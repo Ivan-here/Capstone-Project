@@ -62,6 +62,12 @@ public class CommunityPostController {
         service.delete(id);
     }
 
+    @DeleteMapping("/internal/user/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteByUser(@PathVariable String userId) {
+        service.deleteContentByUser(userId);
+    }
+
     @GetMapping("/{postId}/comments")
     public List<CommunityComment> listComments(@PathVariable String postId) {
         return service.listComments(postId);
