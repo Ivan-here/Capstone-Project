@@ -1,6 +1,7 @@
 package com.example.adminservice.service;
 
 import com.example.adminservice.clients.IdentityServiceClient;
+import com.example.adminservice.clients.ProfileServiceClient;
 import com.example.adminservice.dtos.user.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import java.util.List;
 public class AdminUserService {
 
     private final IdentityServiceClient identityServiceClient;
+    private final ProfileServiceClient profileServiceClient;
 
     public List<UserCredential> getAllUsers() {
         return identityServiceClient.getAllUsers();
@@ -67,6 +69,6 @@ public class AdminUserService {
     }
 
     public void deleteUser(String id) {
-        identityServiceClient.deleteUser(id);
+        profileServiceClient.deleteAccountInternal(id);
     }
 }

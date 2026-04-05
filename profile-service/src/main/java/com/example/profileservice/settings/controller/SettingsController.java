@@ -58,6 +58,11 @@ public class SettingsController {
         settingsService.deleteAccount(userId);
     }
 
+    @DeleteMapping("/internal/account/{userId}")
+    public void deleteAccountInternal(@PathVariable String userId) {
+        settingsService.deleteAccount(userId);
+    }
+
     private String userId(Authentication authentication) {
         if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
             throw new IllegalStateException("Unauthenticated request (missing userId)");
