@@ -25,6 +25,12 @@ public interface ListingServiceClient {
     @PatchMapping("/api/listings/{id}/close")
     Listing closeListing(@PathVariable("id") String id);
 
+    @PatchMapping("/api/listings/{id}/status")
+    Listing updateListingStatus(
+            @PathVariable("id") String id,
+            @RequestParam("status") String status
+    );
+
     @PatchMapping("/api/listings/{id}/quantity")
     Listing updateStock(
             @PathVariable("id") String id,
