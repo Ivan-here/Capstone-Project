@@ -236,6 +236,20 @@ public class ListingService {
         repository.deleteById(id);
     }
 
+    public void deleteListingsByOwnerId(String ownerId) {
+        if (ownerId == null || ownerId.isBlank()) {
+            return;
+        }
+
+        List<Listing> listings = repository.findByOwnerId(ownerId.trim());
+        if (listings.isEmpty()) {
+            return;
+        }
+
+        repository.deleteAll(listings);
+        log.info("Deleted {} listings for ownerId={}", listings.size(), ownerId);
+    }
+
     private String normalizeStatus(String status) {
         String normalized = status == null ? "" : status.trim().toUpperCase();
         if (!ADMIN_ALLOWED_STATUSES.contains(normalized)) {
