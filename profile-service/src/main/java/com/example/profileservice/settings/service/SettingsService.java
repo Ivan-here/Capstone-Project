@@ -10,8 +10,10 @@ import com.example.profileservice.settings.dto.SettingsOverviewResponse;
 import com.example.profileservice.settings.dto.VerificationRecordResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -25,6 +27,13 @@ public class SettingsService {
     private final VerificationGateway verificationGateway;
     private final AdminVerificationReviewGateway adminVerificationReviewGateway;
     private final IdentityClient identityClient;
+    private final WebClient webClient;
+
+    @Value("${clients.listingBaseUrl}")
+    private String listingBaseUrl;
+
+    @Value("${clients.communityBaseUrl}")
+    private String communityBaseUrl;
 
     public SettingsOverviewResponse getOverview(String userId) {
         PersonalProfile personal = personalRepo.findByUserId(userId).orElse(null);
@@ -81,11 +90,16 @@ public class SettingsService {
     public void deleteBusinessProfile(String userId) {
         BusinessProfile business = businessRepo.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Business profile not found"));
+
+        deleteListingsByOwnerId(userId);
+
         businessRepo.delete(business);
         verificationGateway.deleteAllByUserId(userId);
     }
 
     public void deleteAccount(String userId) {
+        deleteListingsByOwnerId(userId);
+        deleteCommunityContentByUserId(userId);
         verificationGateway.deleteAllByUserId(userId);
         businessRepo.findByUserId(userId).ifPresent(businessRepo::delete);
         personalRepo.findByUserId(userId).ifPresent(personalRepo::delete);
@@ -112,5 +126,29 @@ public class SettingsService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Business type is required for verification");
         }
         return business.getBusinessType().name();
+    }
+
+    private void deleteListingsByOwnerId(String userId) {
+        try {
+            webClient.delete()
+                    .uri(listingBaseUrl + "/api/listings/internal/owner/" + userId)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .block();
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to delete user listings");
+        }
+    }
+
+    private void deleteCommunityContentByUserId(String userId) {
+        try {
+            webClient.delete()
+                    .uri(communityBaseUrl + "/api/community/posts/internal/user/" + userId)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .block();
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to delete user community content");
+        }
     }
 }

@@ -102,6 +102,38 @@ public class CommunityPostService {
         repository.delete(existing);
     }
 
+    public void deleteContentByUser(String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
+        }
+
+        String normalizedUserId = userId.trim();
+
+        List<CommunityPost> ownedPosts = repository.findByUserIdOrderByCreatedAtDesc(normalizedUserId);
+        if (!ownedPosts.isEmpty()) {
+            repository.deleteAll(ownedPosts);
+        }
+
+        List<CommunityPost> remainingPosts = repository.findAll();
+        for (CommunityPost post : remainingPosts) {
+            boolean changed = false;
+
+            if (post.getComments() != null) {
+                changed = post.getComments().removeIf(comment -> normalizedUserId.equals(comment.getUserId())) || changed;
+            }
+
+            if (post.getReactions() != null) {
+                changed = post.getReactions().removeIf(reaction -> normalizedUserId.equals(reaction.getUserId())) || changed;
+            }
+
+            if (changed) {
+                recalculateReactionCounts(post);
+                post.setUpdatedAt(Instant.now());
+                repository.save(post);
+            }
+        }
+    }
+
     public List<CommunityComment> listComments(String postId) {
         CommunityPost post = getById(postId);
         return post.getComments() != null ? post.getComments() : List.of();
