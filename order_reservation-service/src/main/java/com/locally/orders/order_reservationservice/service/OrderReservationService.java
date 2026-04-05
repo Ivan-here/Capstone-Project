@@ -909,11 +909,7 @@ public class OrderReservationService {
 
             if ("CANCELLED".equalsIgnoreCase(normalizedStatus)
                     && !"CANCELLED".equalsIgnoreCase(existing.getStatus())) {
-                var listing = listingClient.getListing(existing.getSurplusItemId());
-                if (listing != null) {
-                    int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
-                    listingClient.updateListingQuantity(existing.getSurplusItemId(), currentQty + 1);
-                }
+                tryRestoreReservationStock(existing);
             }
 
             existing.setStatus(normalizedStatus);
@@ -927,11 +923,7 @@ public class OrderReservationService {
         String normalizedStatus = normalizeReservationStatus(status);
 
         if ("CANCELLED".equalsIgnoreCase(normalizedStatus) && !"CANCELLED".equalsIgnoreCase(reservation.getStatus())) {
-            var listing = listingClient.getListing(reservation.getSurplusItemId());
-            if (listing != null) {
-                int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
-                listingClient.updateListingQuantity(reservation.getSurplusItemId(), currentQty + 1);
-            }
+            tryRestoreReservationStock(reservation);
         }
 
         reservation.setStatus(normalizedStatus);
@@ -942,11 +934,7 @@ public class OrderReservationService {
         Reservation existing = getReservationById(id);
 
         if (!"CANCELLED".equalsIgnoreCase(existing.getStatus())) {
-            var listing = listingClient.getListing(existing.getSurplusItemId());
-            if (listing != null) {
-                int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
-                listingClient.updateListingQuantity(existing.getSurplusItemId(), currentQty + 1);
-            }
+            tryRestoreReservationStock(existing);
         }
 
         reservationRepository.delete(existing);
@@ -958,5 +946,23 @@ public class OrderReservationService {
             return "CANCELLED";
         }
         return normalized;
+    }
+
+    private void tryRestoreReservationStock(Reservation reservation) {
+        if (reservation == null || reservation.getSurplusItemId() == null || reservation.getSurplusItemId().isBlank()) {
+            return;
+        }
+
+        try {
+            var listing = listingClient.getListing(reservation.getSurplusItemId());
+            if (listing == null) {
+                return;
+            }
+
+            int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
+            listingClient.updateListingQuantity(reservation.getSurplusItemId(), currentQty + 1);
+        } catch (Exception ex) {
+            System.err.println("Failed to restore stock for reservation " + reservation.getId() + ": " + ex.getMessage());
+        }
     }
 }
