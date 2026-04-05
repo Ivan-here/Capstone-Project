@@ -141,4 +141,10 @@ public class ListingController {
     public void deleteListingById(@PathVariable String id){
         service.deleteListingById(id);
     }
+
+    @DeleteMapping("/internal/owner/{ownerId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteListingsByOwnerId(@PathVariable String ownerId) {
+        service.deleteListingsByOwnerId(ownerId);
+    }
 }
