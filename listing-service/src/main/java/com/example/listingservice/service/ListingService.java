@@ -20,11 +20,19 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ListingService {
+
+    private static final Set<String> ADMIN_ALLOWED_STATUSES = Set.of(
+            "ACTIVE",
+            "OUT_OF_STOCK",
+            "EXPIRED",
+            "CLOSED"
+    );
 
     private final ListingRepository repository;
     private final ProfileClient profileClient;
@@ -165,6 +173,15 @@ public class ListingService {
         return repository.save(listing);
     }
 
+    public Listing updateStatus(String id, String status) {
+        Listing listing = getListingById(id);
+        String normalizedStatus = normalizeStatus(status);
+
+        listing.setStatus(normalizedStatus);
+        listing.setUpdatedAt(LocalDateTime.now());
+        return repository.save(listing);
+    }
+
     public Listing updateStock(String id, UpdateListingDTO dto) {
         Listing listing = getListingById(id);
         listing.setQuantity(dto.newQuantity());
@@ -217,5 +234,13 @@ public class ListingService {
     public void deleteListingById(String id){
         log.info("Deleting listing with id: {}", id);
         repository.deleteById(id);
+    }
+
+    private String normalizeStatus(String status) {
+        String normalized = status == null ? "" : status.trim().toUpperCase();
+        if (!ADMIN_ALLOWED_STATUSES.contains(normalized)) {
+            throw new RuntimeException("Unsupported listing status: " + status);
+        }
+        return normalized;
     }
 }
