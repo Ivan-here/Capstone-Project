@@ -142,7 +142,7 @@ services:
       - "9000:9000"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      CORS_ALLOWED_ORIGIN_PATTERNS: "${CORS_ALLOWED_ORIGIN_PATTERNS}"
+      CORS_ALLOWED_ORIGIN_PATTERNS: "${CORS_ALLOWED_ORIGIN_PATTERNS:-https://www.locallyl.com,https://locallyl.com,http://localhost:*,http://127.0.0.1:*}"
     depends_on:
       - identity-service
       - profile-service

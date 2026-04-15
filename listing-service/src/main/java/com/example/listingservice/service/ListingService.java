@@ -63,6 +63,10 @@ public class ListingService {
         }
 
         List<String> uploadedUrls = new ArrayList<>();
+        if (dto.retainedImages() != null && !dto.retainedImages().isEmpty()) {
+            uploadedUrls.addAll(dto.retainedImages());
+        }
+
         if (images != null && !images.isEmpty()) {
             for (MultipartFile file : images) {
                 try {
