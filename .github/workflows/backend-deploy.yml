@@ -16,6 +16,8 @@ jobs:
 
       - name: Deploy backend
         shell: bash
+        env:
+          COMPOSE_PARALLEL_LIMIT: 4
         run: |
           cd "${{ secrets.EC2_APP_DIR }}"
           git checkout main
