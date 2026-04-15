@@ -36,6 +36,8 @@ public record CreateListingDTO(
         @Min(value = 1, message = "Quantity must be at least 1")
         Integer quantity,
 
-        LocalDateTime expiryDate// Optional (mostly for Surplus)
+        LocalDateTime expiryDate, // Optional (mostly for Surplus)
+
+        List<String> retainedImages
 
 ) {}
