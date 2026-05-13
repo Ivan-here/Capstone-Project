@@ -18,9 +18,11 @@ jobs:
         shell: bash
         env:
           COMPOSE_PARALLEL_LIMIT: 2
+          EC2_APP_DIR: ${{ secrets.EC2_APP_DIR }}
         run: |
-          cd "${{ secrets.EC2_APP_DIR }}"
-          git checkout main
-          git pull origin main
+          mkdir -p "$EC2_APP_DIR/deploy"
+          cp deploy/Dockerfile.runtime "$EC2_APP_DIR/deploy/Dockerfile.runtime"
+          cp deploy/docker-compose.runtime.yml "$EC2_APP_DIR/deploy/docker-compose.runtime.yml"
+          cd "$EC2_APP_DIR"
           docker-compose -f docker-compose.yml -f deploy/docker-compose.runtime.yml up -d --no-build
           docker-compose -f docker-compose.yml -f deploy/docker-compose.runtime.yml ps
