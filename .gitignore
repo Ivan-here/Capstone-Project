@@ -38,3 +38,6 @@ out/
 
 # Local environment files
 .env
+
+# Deployment build artifacts
+deploy/*.tar

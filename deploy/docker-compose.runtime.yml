@@ -1,0 +1,98 @@
+services:
+  verification-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: verification-service
+        APP_PORT: 8083
+
+  listing-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: listing-service
+        APP_PORT: 8084
+
+  identity-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: identity-service
+        APP_PORT: 8082
+
+  profile-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: profile-service
+        APP_PORT: 8081
+
+  order-reservation-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: order_reservation-service
+        APP_PORT: 8086
+
+  notifications-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: notifications-service
+        APP_PORT: 8085
+
+  community-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: community-service
+        APP_PORT: 8088
+
+  review-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: review-service
+        APP_PORT: 8089
+
+  follow-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: follow-service
+        APP_PORT: 8091
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: api-gateway
+        APP_PORT: 9000
+    environment:
+      JAVA_OPTS: "-Xms64m -Xmx128m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=48m"
+
+  admin-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: admin-service
+        APP_PORT: 8087
+
+  stripe-payment-service:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.runtime
+      args:
+        SERVICE_DIR: stripe-payment-service
+        APP_PORT: 8090

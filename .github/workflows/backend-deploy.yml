@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, linux, arm64, aws, backend]
     environment: Backend-env
 
     steps:
@@ -17,10 +17,10 @@ jobs:
       - name: Deploy backend
         shell: bash
         env:
-          COMPOSE_PARALLEL_LIMIT: 4
+          COMPOSE_PARALLEL_LIMIT: 2
         run: |
           cd "${{ secrets.EC2_APP_DIR }}"
           git checkout main
           git pull origin main
-          docker compose up -d --build
-          docker compose ps
+          docker-compose -f docker-compose.yml -f deploy/docker-compose.runtime.yml up -d --no-build
+          docker-compose -f docker-compose.yml -f deploy/docker-compose.runtime.yml ps
