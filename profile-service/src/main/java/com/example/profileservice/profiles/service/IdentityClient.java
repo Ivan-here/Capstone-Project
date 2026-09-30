@@ -12,6 +12,9 @@ import java.util.Map;
 )
 public interface IdentityClient {
 
+    @DeleteMapping("/internal/users/{userId}/roles:remove")
+    Map<String, Object> removeRole(@PathVariable("userId") String userId, @RequestBody Map<String, Object> body);
+
     @PostMapping("/internal/users/{userId}/roles:add")
     Map<String, Object> addRole(
             @PathVariable("userId") String userId,

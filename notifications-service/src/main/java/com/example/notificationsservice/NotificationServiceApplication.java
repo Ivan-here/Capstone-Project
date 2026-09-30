@@ -3,6 +3,7 @@ package com.example.notificationsservice;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+@org.springframework.context.annotation.Import(com.locally.security.ServiceSecurityConfiguration.class)
 @SpringBootApplication
 public class NotificationServiceApplication {
     public static void main(String[] args) {

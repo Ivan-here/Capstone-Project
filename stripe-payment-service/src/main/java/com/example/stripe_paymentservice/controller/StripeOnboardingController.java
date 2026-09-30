@@ -19,16 +19,11 @@ public class StripeOnboardingController {
 
     @GetMapping("/return")
     public RedirectView handleReturn(@RequestParam String sellerId) throws StripeException {
-        SellerPaymentProfile profile = stripeConnectService.refreshStatus(sellerId);
-        String redirectUrl = stripeConnectService.buildFrontendReturnUrl(
-                sellerId,
-                Boolean.TRUE.equals(profile.getOnboardingComplete())
-        );
-        return new RedirectView(redirectUrl);
+        return new RedirectView(stripeConnectService.buildFrontendReturnUrl(sellerId, false));
     }
 
     @GetMapping("/refresh")
     public RedirectView handleRefresh(@RequestParam String sellerId) throws StripeException {
-        return new RedirectView(stripeConnectService.createOnboardingLink(sellerId));
+        return new RedirectView(stripeConnectService.buildFrontendReturnUrl(sellerId, false));
     }
 }

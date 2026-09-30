@@ -23,6 +23,16 @@ public class PaymentClient {
         );
     }
 
+    public Boolean verifyPayment(com.locally.orders.order_reservationservice.model.Order order) {
+        return restTemplate.postForObject(paymentBaseUrl + "/api/payments/verify",
+            java.util.Map.of("orderId", order.getId(), "paymentIntentId", order.getStripePaymentIntentId(),
+                "amountCents", order.getGrossAmountCents(), "currency", order.getCurrency(), "sellerUserId", order.getSellerUserId()), Boolean.class);
+    }
+
+    public void cancelPayment(String paymentIntentId) {
+        restTemplate.postForObject(paymentBaseUrl + "/api/payments/cancel", java.util.Map.of("paymentIntentId", paymentIntentId), Void.class);
+    }
+
     public ReleaseFundsResponse releaseFunds(ReleaseFundsRequest request) {
         return restTemplate.postForObject(
                 paymentBaseUrl + "/api/payments/release",

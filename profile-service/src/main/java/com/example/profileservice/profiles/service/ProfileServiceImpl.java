@@ -107,9 +107,6 @@ public class ProfileServiceImpl implements ProfileService {
 
         if (req.addresses() != null) p.setAddresses(req.addresses());
         if (req.preferences() != null) p.setPreferences(req.preferences());
-        if (req.stats() != null) p.setStats(req.stats());
-        if (req.followingPeople() != null) p.setFollowingPeople(req.followingPeople());
-        if (req.ratings() != null) p.setRatings(req.ratings());
 
         p.setUpdatedAt(Instant.now());
         return personalRepo.save(p);
@@ -132,6 +129,7 @@ public class ProfileServiceImpl implements ProfileService {
         boolean addressChanged = !isNew && !Objects.equals(b.getAddress(), req.address());
 
         if (businessTypeChanged || addressChanged) {
+            roleUpgradeClient.revokeBusinessRoles(userId);
             b.setVerified(false);
         }
 
@@ -160,6 +158,7 @@ public class ProfileServiceImpl implements ProfileService {
         BusinessProfile b = businessRepo.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Business profile not found"));
 
+        roleUpgradeClient.revokeBusinessRoles(userId);
         businessRepo.delete(b);
     }
 
@@ -167,6 +166,18 @@ public class ProfileServiceImpl implements ProfileService {
     public ProfileResponse getProfileByUserId(String userId) {
         PersonalProfile personal = personalRepo.findByUserId(userId).orElse(null);
         BusinessProfile business = businessRepo.findByUserId(userId).orElse(null);
+        if (!com.locally.security.Access.privileged() && !com.locally.security.Access.owns(userId)) {
+            if (personal != null) {
+                if (personal.getEmailVisibility() != ContactVisibility.PUBLIC) personal.setEmail(null);
+                if (personal.getPhoneVisibility() != ContactVisibility.PUBLIC) personal.setPhone(null);
+                personal.setAddresses(List.of());
+                personal.setPreferences(List.of());
+            }
+            if (business != null) {
+                if (business.getEmailVisibility() != ContactVisibility.PUBLIC) business.setEmail(null);
+                if (business.getPhoneVisibility() != ContactVisibility.PUBLIC) business.setPhone(null);
+            }
+        }
         return new ProfileResponse(userId, personal, business);
     }
 
@@ -207,6 +218,7 @@ public class ProfileServiceImpl implements ProfileService {
         BusinessProfile profile = businessRepo.findByUserId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Business profile not found"));
 
+        if (!verified) roleUpgradeClient.revokeBusinessRoles(userId);
         profile.setVerified(verified);
         profile.setUpdatedAt(Instant.now());
 

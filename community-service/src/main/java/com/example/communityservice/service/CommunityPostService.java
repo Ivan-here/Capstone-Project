@@ -1,5 +1,7 @@
 package com.example.communityservice.service;
 
+import com.locally.security.Access;
+
 import com.example.communityservice.client.IdentityClient;
 import com.example.communityservice.client.NotificationClient;
 import com.example.communityservice.dto.CreateCommunityCommentRequest;
@@ -27,15 +29,18 @@ public class CommunityPostService {
     private final CommunityPostRepository repository;
     private final IdentityClient identityClient;
     private final NotificationClient notificationClient;
+    private final com.example.communityservice.client.FollowVisibilityClient visibilityClient;
 
     public CommunityPostService(
             CommunityPostRepository repository,
             IdentityClient identityClient,
-            NotificationClient notificationClient
+            NotificationClient notificationClient,
+            com.example.communityservice.client.FollowVisibilityClient visibilityClient
     ) {
         this.repository = repository;
         this.identityClient = identityClient;
         this.notificationClient = notificationClient;
+        this.visibilityClient = visibilityClient;
     }
 
     public CommunityPost create(CreateCommunityPostRequest request) {
@@ -70,7 +75,7 @@ public class CommunityPostService {
             if (authorType != null && post.getAuthorType() != authorType) {
                 continue;
             }
-            filtered.add(post);
+            if (visible(post)) filtered.add(post);
         }
         return filtered;
     }
@@ -79,15 +84,18 @@ public class CommunityPostService {
         if (userId == null || userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
         }
-        return repository.findByUserIdOrderByCreatedAtDesc(userId.trim());
+        return repository.findByUserIdOrderByCreatedAtDesc(userId.trim()).stream().filter(this::visible).toList();
     }
 
     public CommunityPost getById(String id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Community post not found: " + id));
+        CommunityPost post = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!visible(post)) Access.denied();
+        return post;
     }
 
     public CommunityPost update(String id, UpdateCommunityPostRequest request) {
+        Access.owner(getById(id).getUserId());
         IdentityClient.IdentityUserSummary author = requireUser(request.userId());
 
         CommunityPost existing = getById(id);
@@ -98,6 +106,7 @@ public class CommunityPostService {
     }
 
     public void delete(String id) {
+        Access.owner(getById(id).getUserId());
         CommunityPost existing = getById(id);
         repository.delete(existing);
     }
@@ -167,6 +176,9 @@ public class CommunityPostService {
         if (post.getComments() == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Community comment not found: " + commentId);
         }
+        var target = post.getComments().stream().filter(c -> c.getId().equals(commentId)).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        Access.participant(target.getUserId(), post.getUserId());
         boolean removed = post.getComments().removeIf(comment -> comment.getId().equals(commentId));
         if (!removed) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Community comment not found: " + commentId);
@@ -225,7 +237,8 @@ public class CommunityPostService {
         post.setUserId(author.userId());
         post.setAuthorDisplayName(author.displayName());
         post.setAuthorUsername(author.username());
-        post.setAuthorType(request.authorType() != null ? request.authorType() : CommunityAuthorType.USER);
+        post.setAuthorType(author.roles().contains("NGO") ? CommunityAuthorType.NGO
+                : author.roles().stream().anyMatch(role -> role.equals("FARMER") || role.equals("RESTAURANT")) ? CommunityAuthorType.BUSINESS : CommunityAuthorType.USER);
         post.setAuthorHeadline(normalizeNullable(request.authorHeadline()));
         post.setTab(request.tab() != null ? request.tab() : CommunityTab.COMMUNITY);
         post.setVisibility(request.visibility() != null ? request.visibility() : CommunityVisibility.PUBLIC);
@@ -239,7 +252,8 @@ public class CommunityPostService {
         post.setUserId(author.userId());
         post.setAuthorDisplayName(author.displayName());
         post.setAuthorUsername(author.username());
-        post.setAuthorType(request.authorType() != null ? request.authorType() : CommunityAuthorType.USER);
+        post.setAuthorType(author.roles().contains("NGO") ? CommunityAuthorType.NGO
+                : author.roles().stream().anyMatch(role -> role.equals("FARMER") || role.equals("RESTAURANT")) ? CommunityAuthorType.BUSINESS : CommunityAuthorType.USER);
         post.setAuthorHeadline(normalizeNullable(request.authorHeadline()));
         post.setTab(request.tab() != null ? request.tab() : CommunityTab.COMMUNITY);
         post.setVisibility(request.visibility() != null ? request.visibility() : CommunityVisibility.PUBLIC);
@@ -249,7 +263,13 @@ public class CommunityPostService {
         post.setTags(normalizeTags(request.tags()));
     }
 
+    private boolean visible(CommunityPost post) {
+        return post.getVisibility() == CommunityVisibility.PUBLIC || Access.privileged() || Access.owns(post.getUserId())
+            || visibilityClient.follows(Access.userId(), post.getUserId());
+    }
+
     private IdentityClient.IdentityUserSummary requireUser(String userId) {
+        Access.owner(userId);
         if (userId == null || userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
         }

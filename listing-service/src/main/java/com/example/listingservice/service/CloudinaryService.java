@@ -16,8 +16,9 @@ public class CloudinaryService {
     private final Cloudinary cloudinary;
 
     public String uploadImage(MultipartFile file) {
+        com.locally.security.Uploads.image(file);
         try {
-            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap("resource_type", "image", "format", "png"));
             return uploadResult.get("secure_url").toString();
         } catch (IOException e) {
             throw new RuntimeException("Image upload failed: " + e.getMessage());

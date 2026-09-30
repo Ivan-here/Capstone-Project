@@ -11,6 +11,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RoleUpgradeClient {
 
+    public void revokeBusinessRoles(String userId) {
+        for (String role : java.util.List.of("FARMER", "RESTAURANT", "NGO")) {
+            identityClient.removeRole(userId, Map.of("role", role));
+        }
+    }
+
     private final IdentityClient identityClient;
 
     public void addRoleToUser(String userId, String role) {

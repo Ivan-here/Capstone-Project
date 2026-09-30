@@ -12,10 +12,12 @@ public class HttpClientConfig {
 
     @Bean
     public RestTemplate restTemplate() {
-        HttpClient httpClient = HttpClients.createDefault();
+        HttpClient httpClient = HttpClients.custom().disableRedirectHandling().build();
         HttpComponentsClientHttpRequestFactory factory =
                 new HttpComponentsClientHttpRequestFactory(httpClient);
 
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(15000);
         return new RestTemplate(factory);
     }
 }

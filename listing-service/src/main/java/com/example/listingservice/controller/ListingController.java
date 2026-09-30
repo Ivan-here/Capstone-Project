@@ -1,5 +1,7 @@
 package com.example.listingservice.controller;
 
+import com.locally.security.Access;
+
 import com.example.listingservice.dto.CreateListingDTO;
 import com.example.listingservice.dto.FullUpdateListingDTO;
 import com.example.listingservice.dto.UpdateListingDTO;
@@ -22,11 +24,20 @@ import java.util.List;
 public class ListingController {
 
     private final ListingService service;
+    private final com.example.listingservice.service.InventoryService inventory;
+
+    public record StockAdjustment(String operationId, int delta) {}
+
+    @PostMapping("/internal/{id}/stock")
+    public Listing adjustStock(@PathVariable String id, @RequestBody StockAdjustment adjustment) {
+        return inventory.adjust(id, adjustment.operationId(), adjustment.delta());
+    }
     private final ListingRepository repository;
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        if (ex instanceof org.springframework.web.server.ResponseStatusException status) return ResponseEntity.status(status.getStatusCode()).body("Request denied");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid listing request");
     }
 
     @PostMapping(value = "/farm", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -52,7 +63,7 @@ public class ListingController {
             @RequestParam(required = false) String userId
     ) {
         // 1. Fetch absolutely everything to bypass MongoDB query bugs
-        List<Listing> allListings = repository.findAll();
+        List<Listing> allListings = repository.findAll().stream().filter(this::visible).toList();
 
         // 2. Filter out anything that is explicitly "CLOSED"
         List<Listing> activeListings = allListings.stream()
@@ -77,7 +88,7 @@ public class ListingController {
                 .toList();
 
         // 4. UPDATED NGO CHECK: Be more flexible with the role string ---
-        boolean isNgo = role != null && (role.equalsIgnoreCase("NGO") || role.toUpperCase().contains("NGO"));
+        boolean isNgo = Access.hasRole("NGO") || Access.privileged();
 
         if (isNgo) {
             // Return EVERYTHING that is purchasable (Public + NGO_ONLY)
@@ -103,7 +114,9 @@ public class ListingController {
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public Listing getListing(@PathVariable String id) {
-        return service.getListingById(id);
+        Listing listing = service.getListingById(id);
+        if (!visible(listing)) Access.denied();
+        return listing;
     }
 
     @PatchMapping("/{id}/close")
@@ -146,5 +159,9 @@ public class ListingController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteListingsByOwnerId(@PathVariable String ownerId) {
         service.deleteListingsByOwnerId(ownerId);
+    }
+    private boolean visible(Listing listing) {
+        return Access.privileged() || Access.owns(listing.getOwnerId()) || Access.hasRole("NGO")
+            || listing.getVisibility() == null || "PUBLIC".equals(listing.getVisibility());
     }
 }

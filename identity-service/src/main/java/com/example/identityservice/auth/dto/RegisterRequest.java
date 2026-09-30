@@ -9,9 +9,11 @@ public record RegisterRequest(
 
         @Email
         @NotBlank
+        @Size(max = 254)
         String email,
 
         @NotBlank
+        @jakarta.validation.constraints.Pattern(regexp = "[A-Za-z0-9_]{3,40}")
         String username,
 
         @NotBlank
@@ -23,7 +25,7 @@ public record RegisterRequest(
         String lastName,
 
         @NotBlank
-        @Size(min = 8, message = "password must be at least 8 characters")
+        @Size(min = 12, max = 72, message = "password must be 12 to 72 characters")
         String password,
 
         @Size(max = 120)

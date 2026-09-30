@@ -10,6 +10,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface OrderClient {
 
     // Returns true ONLY if the order is COMPLETED and belongs to this user
-    @GetMapping("/internal/orders/{orderId}/verify")
-    boolean verifyOrderCompletion(@PathVariable("orderId") String orderId, @RequestParam("userId") String userId);
+    @GetMapping("/api/internal/orders/{orderId}/verify")
+    boolean verifyOrderCompletion(@PathVariable("orderId") String orderId, @RequestParam("userId") String userId, @RequestParam("targetId") String targetId, @RequestParam("targetType") String targetType);
 }

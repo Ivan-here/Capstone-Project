@@ -17,10 +17,7 @@ public class PaymentExceptionHandler {
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<Map<String, String>> handleFeignException(FeignException ex) {
         log.error("Downstream service call failed", ex);
-        String message = ex.contentUTF8();
-        if (message == null || message.isBlank()) {
-            message = "Internal service call failed. Check profile-service availability and business profile data.";
-        }
+        String message = "Payment service is temporarily unavailable.";
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(Map.of("message", message));
     }
@@ -28,9 +25,7 @@ public class PaymentExceptionHandler {
     @ExceptionHandler(StripeException.class)
     public ResponseEntity<Map<String, String>> handleStripeException(StripeException ex) {
         log.error("Stripe call failed", ex);
-        String message = ex.getMessage() == null || ex.getMessage().isBlank()
-                ? "Stripe request failed."
-                : ex.getMessage();
+        String message = "Payment provider request failed.";
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(Map.of("message", message));
     }
@@ -38,9 +33,10 @@ public class PaymentExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
         log.error("Payment service request failed", ex);
-        String message = ex.getMessage() == null || ex.getMessage().isBlank()
-                ? "Payment service request failed."
-                : ex.getMessage();
+        if (ex instanceof org.springframework.web.server.ResponseStatusException status) {
+            return ResponseEntity.status(status.getStatusCode()).body(Map.of("message", "Request denied."));
+        }
+        String message = "Invalid payment request.";
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("message", message));
     }

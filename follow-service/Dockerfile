@@ -1,11 +1,12 @@
-FROM gradle:8.7-jdk21 AS build
+FROM gradle:8.14-jdk21 AS build
 WORKDIR /app
 COPY . .
-RUN chmod +x ./gradlew
-RUN ./gradlew clean bootJar --no-daemon -x test
-
+RUN chmod +x ./gradlew && ./gradlew :follow-service:bootJar --no-daemon -x test
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /app/build/libs/*.jar app.jar
+RUN groupadd --system app && useradd --system --gid app app
+COPY --from=build --chown=app:app /app/follow-service/build/libs/app.jar app.jar
+USER app
 EXPOSE 8091
-ENTRYPOINT ["java","-jar","app.jar"]
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

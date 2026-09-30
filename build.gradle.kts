@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "3.4.2"
+    id("org.springframework.boot") version "3.5.16"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -40,3 +40,23 @@ dependencies {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+// Pure security regression suites run with mocks and never require production credentials.
+subprojects {
+    plugins.withId("org.springframework.boot") {
+        tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") { archiveFileName.set("app.jar") }
+    }
+    plugins.withId("java") {
+        val sources = extensions.getByType<SourceSetContainer>()
+        tasks.register<Test>("securityTest") {
+            testClassesDirs = sources["test"].output.classesDirs
+            classpath = sources["test"].runtimeClasspath
+            useJUnitPlatform()
+            filter {
+                includeTestsMatching("*SecurityTest")
+                isFailOnNoMatchingTests = false
+            }
+        }
+    }
+}
+tasks.register("securityRegression") { dependsOn(subprojects.map { "${it.path}:securityTest" }) }
