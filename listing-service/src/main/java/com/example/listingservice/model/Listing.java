@@ -16,6 +16,11 @@ import java.util.List; // Import for List
 @AllArgsConstructor
 @Builder
 public class Listing {
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @lombok.Builder.Default
+    private java.util.List<String> inventoryOperations = new java.util.ArrayList<>();
+    @org.springframework.data.annotation.Version
+    private Long version;
     @Id
     private String id;
 

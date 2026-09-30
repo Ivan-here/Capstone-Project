@@ -67,7 +67,7 @@ public class StripePaymentService {
                 )
                 .build();
 
-        PaymentIntent paymentIntent = PaymentIntent.create(params);
+        PaymentIntent paymentIntent = PaymentIntent.create(params, idempotency("intent", request.orderId()));
 
         return new CreatePaymentIntentResponse(
                 paymentIntent.getId(),
@@ -100,6 +100,30 @@ public class StripePaymentService {
         }
 
         return ResponseEntity.ok("Webhook received");
+    }
+
+    public boolean verifyPayment(VerifyPaymentRequest request) throws StripeException {
+        if (request.paymentIntentId() == null || request.orderId() == null || request.amountCents() == null) return false;
+        PaymentIntent intent = PaymentIntent.retrieve(request.paymentIntentId());
+        return "succeeded".equals(intent.getStatus())
+            && request.amountCents().equals(intent.getAmountReceived())
+            && request.currency().equalsIgnoreCase(intent.getCurrency())
+            && request.orderId().equals(intent.getMetadata().get("orderId"))
+            && request.sellerUserId().equals(intent.getMetadata().get("sellerUserId"));
+    }
+
+    public void cancelUnpaidIntent(String id) throws StripeException {
+        if (id == null || !id.startsWith("pi_")) throw new IllegalArgumentException("Invalid intent");
+        PaymentIntent intent = PaymentIntent.retrieve(id);
+        if ("canceled".equals(intent.getStatus())) return;
+        if (!java.util.Set.of("requires_payment_method", "requires_confirmation", "requires_action").contains(intent.getStatus())) {
+            throw new IllegalStateException("Payment is processing or paid; refresh the order before cancellation");
+        }
+        intent.cancel(com.stripe.param.PaymentIntentCancelParams.builder().build());
+    }
+
+    private com.stripe.net.RequestOptions idempotency(String operation, String orderId) {
+        return com.stripe.net.RequestOptions.builder().setIdempotencyKey("locally:" + operation + ":" + orderId).build();
     }
 
     public ReleaseFundsResponse releaseFunds(ReleaseFundsRequest request) throws StripeException {
@@ -135,7 +159,7 @@ public class StripePaymentService {
                 .putMetadata("sellerUserId", request.sellerUserId())
                 .build();
 
-        Transfer transfer = Transfer.create(params);
+        Transfer transfer = Transfer.create(params, idempotency("release", request.orderId()));
 
         return new ReleaseFundsResponse(
                 transfer.getId(),
@@ -161,7 +185,7 @@ public class StripePaymentService {
                 .putMetadata("reason", request.reason() == null ? "requested_by_platform" : request.reason())
                 .build();
 
-        Refund refund = Refund.create(params);
+        Refund refund = Refund.create(params, idempotency("refund", request.orderId()));
 
         return new RefundPaymentResponse(
                 refund.getId(),

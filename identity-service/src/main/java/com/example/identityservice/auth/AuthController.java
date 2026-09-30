@@ -21,6 +21,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody RegisterRequest req) {
+        com.locally.security.AttemptLimiter.check("registration-global", 30, 60);
 
         UserCredential u = userService.register(
                 req.email(),
@@ -50,6 +51,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest req) {
+        com.locally.security.AttemptLimiter.check("login-global", 300, 60);
 
         UserCredential u = userService.authenticate(req.login(), req.password());
 

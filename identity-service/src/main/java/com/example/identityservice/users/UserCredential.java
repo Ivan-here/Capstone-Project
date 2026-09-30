@@ -19,7 +19,9 @@ public class UserCredential {
     @Indexed(unique = true)
     private String email;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String passwordHash;
+    @Indexed(unique = true)
     private String username;
     private String displayName;
 

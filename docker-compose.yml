@@ -1,41 +1,41 @@
+x-security: &service-security
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+
 services:
-  # 1. The Database (FIXED CREDENTIALS)
-  #  mongodb:
-  #    image: mongo:latest
-  #    container_name: mongodb
-  #    ports:
-  #      - "27017:27017"
-  #    environment:
-
-  #      # These MUST match your application.properties
-  #      MONGO_INITDB_ROOT_USERNAME: myuser
-  #      MONGO_INITDB_ROOT_PASSWORD: rootpass
-  #    volumes:
-  #      - mongo_data:/data/db
-
   # 2. Service A: Verification
   verification-service:
-    build: ./verification-service
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: verification-service/Dockerfile
     container_name: verification_service
-    ports:
-      - "8083:8083"
+    expose:
+      - "8083"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
-      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_VERIFICATION}"
       CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
       CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
       CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
 
   listing-service:
-    build: ./listing-service
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: listing-service/Dockerfile
     container_name: listing_service
-    ports:
-      - "8084:8084"
+    expose:
+      - "8084"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_LISTING}"
       PAYMENT_SERVICE_BASE_URL: "http://stripe-payment-service:8090"
       NOTIFICATIONS_SERVICE_BASE_URL: "http://notifications-service:8085"
@@ -45,28 +45,36 @@ services:
       CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
 
   identity-service:
+    <<: *service-security
     build:
-      context: ./identity-service
+      context: .
+      dockerfile: identity-service/Dockerfile
     container_name: identity_service
-    ports:
-      - "8082:8082"
+    expose:
+      - "8082"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_IDENTITY}"
       SECURITY_JWT_SECRET: "${JWT_SECRET}"
-      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
 
   profile-service:
+    <<: *service-security
     build:
-      context: ./profile-service
+      context: .
+      dockerfile: profile-service/Dockerfile
     container_name: profile_service
-    ports:
-      - "8081:8081"
+    expose:
+      - "8081"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_PROFILE}"
-      JWT_SECRET: "${JWT_SECRET}"
-      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
       CLIENTS_IDENTITYBASEURL: "http://identity-service:8082"
       CLIENTS_VERIFICATIONBASEURL: "http://verification-service:8083"
       CLIENTS_ADMINBASEURL: "http://admin-service:8087"
@@ -74,61 +82,81 @@ services:
       - identity-service
 
   order-reservation-service:
-    build: ./order_reservation-service
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: order_reservation-service/Dockerfile
     container_name: order_reservation_service
-    ports:
-      - "8086:8086"
+    expose:
+      - "8086"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_ORDER}"
       LISTING_SERVICE_BASE_URL: "http://listing-service:8084"
       PAYMENT_SERVICE_BASE_URL: "http://stripe-payment-service:8090"
       NOTIFICATIONS_SERVICE_BASE_URL: "http://notifications-service:8085"
 
   notifications-service:
-    build: ./notifications-service
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: notifications-service/Dockerfile
     container_name: notifications_service
-    ports:
-      - "8085:8085"
+    expose:
+      - "8085"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_NOTIFICATIONS}"
       SERVICES_IDENTITY_BASE_URL: "http://identity-service:8082"
-      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
 
   community-service:
-    build: ./community-service
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: community-service/Dockerfile
     container_name: community_service
-    ports:
-      - "8088:8088"
+    expose:
+      - "8088"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_COMMUNITY}"
       SERVICES_IDENTITY_BASE_URL: "http://identity-service:8082"
       SERVICES_NOTIFICATIONS_BASE_URL: "http://notifications-service:8085"
-      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
 
   review-service:
-    build: ./review-service
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: review-service/Dockerfile
     container_name: review_service
-    ports:
-      - "8089:8089"
+    expose:
+      - "8089"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_REVIEW}"
       CLIENTS_ORDERRESERVATIONBASEURL: "http://order-reservation-service:8086"
-      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET}"
 
   # --- NEW FOLLOW SERVICE ---
   follow-service:
-    build: ./follow-service
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: follow-service/Dockerfile
     container_name: follow-service
-    ports:
-      - "8091:8091"
+    expose:
+      - "8091"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_FOLLOW}"
       CLIENTS_PROFILE_SERVICE_URL: "http://profile-service:8081"
       NOTIFICATIONS_SERVICE_URL: "http://notifications-service:8085"
@@ -136,13 +164,17 @@ services:
       - profile-service
 
   api-gateway:
+    <<: *service-security
     build:
-      context: ./api-gateway
+      context: .
+      dockerfile: api-gateway/Dockerfile
     ports:
-      - "9000:9000"
+      - "127.0.0.1:9000:9000"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      CORS_ALLOWED_ORIGIN_PATTERNS: "${CORS_ALLOWED_ORIGIN_PATTERNS:-https://www.locallyl.com,https://locallyl.com,http://localhost:*,http://127.0.0.1:*}"
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
+      CORS_ALLOWED_ORIGIN_PATTERNS: "${CORS_ALLOWED_ORIGIN_PATTERNS:-https://www.locallyl.com,https://locallyl.com}"
     depends_on:
       - identity-service
       - profile-service
@@ -156,13 +188,17 @@ services:
       - stripe-payment-service
 
   admin-service:
+    <<: *service-security
     build:
-      context: ./admin-service
+      context: .
+      dockerfile: admin-service/Dockerfile
     container_name: admin_service
-    ports:
-      - "8087:8087"
+    expose:
+      - "8087"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       SPRING_DATA_MONGODB_URI: "${MONGODB_URI_ADMIN}"
       SECURITY_JWT_SECRET: "${JWT_SECRET}"
       CLIENTS_IDENTITYBASEURL: "http://identity-service:8082"
@@ -182,12 +218,17 @@ services:
       - community-service
 
   stripe-payment-service:
-    build: ./stripe-payment-service
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: stripe-payment-service/Dockerfile
     container_name: stripe_payment_service
-    ports:
-      - "8090:8090"
+    expose:
+      - "8090"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JWT_SECRET: "${JWT_SECRET:?Set JWT_SECRET}"
+      INTERNAL_SHARED_SECRET: "${INTERNAL_SHARED_SECRET:?Set INTERNAL_SHARED_SECRET}"
       STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY}"
       STRIPE_PUBLISHABLE_KEY: "${STRIPE_PUBLISHABLE_KEY}"
       STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET}"

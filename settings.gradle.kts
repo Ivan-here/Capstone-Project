@@ -1,3 +1,4 @@
 rootProject.name = "CapstoneProject"
 include("listing-service","verification-service","identity-service","api-gateway","profile-service","order_reservation-service","notifications-service","community-service" , "review-service" , "stripe-payment-service" , "follow-service")
 include("admin-service")
+include("security-common")

@@ -47,6 +47,7 @@ public class Order {
 
     private PaymentStatus paymentStatus;
     private String stripePaymentIntentId;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String stripeClientSecret;
     private String stripeConnectedAccountId;
     private String stripeTransferId;
@@ -57,7 +58,9 @@ public class Order {
     @Builder.Default
     private boolean stockDeducted = false;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String pickupCodeHash;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String pickupCodePlain;
     private LocalDateTime pickupCodeExpiresAt;
     private Boolean pickupCodeVerified;

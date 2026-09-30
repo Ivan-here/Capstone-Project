@@ -1,12 +1,20 @@
+[Visit Locally](https://www.locallyl.com/)
+
 # Capstone Backend
 
 Spring Boot microservice backend for the Locally capstone platform. The backend provides identity, profiles, listings, orders and reservations, payments, notifications, community posts, reviews, follows, verification, administration, and an API gateway for the React frontend.
 
+## Security and deployment
+
+Read [SECURITY.md](SECURITY.md) before deploying this update. It documents authentication/ownership protections, private uploads, payment verification, credential rotation, database index checks, and recovery procedures. The changes are local source changes; production account settings and existing public documents require a coordinated rollout.
+
+Run isolated security tests with `./gradlew securityRegression`. All backend services require independent `JWT_SECRET` and `INTERNAL_SHARED_SECRET` values. Compose publishes only the gateway, on host loopback; use an HTTPS reverse proxy for public access.
+
 ## Tech Stack
 
 - Java 21
-- Spring Boot 3.4.2
-- Spring Cloud 2024.0.0
+- Spring Boot 3.5.16
+- Spring Cloud 2025.0.3
 - Gradle Kotlin DSL
 - MongoDB
 - Spring Cloud Gateway
@@ -40,7 +48,7 @@ The frontend should call the gateway on `http://localhost:9000` in local develop
 | Path | Target service |
 | --- | --- |
 | `/auth/**` | `identity-service` |
-| `/profiles/**`, `/internal/profiles/**` | `profile-service` |
+| `/profiles/**` | `profile-service` |
 | `/api/listings/**` | `listing-service` |
 | `/api/orders/**`, `/api/reservations/**` | `order_reservation-service` |
 | `/api/verification/**` | `verification-service` |
@@ -87,18 +95,16 @@ http://localhost:9000
 
 ## Running a Service Locally
 
-Each service has its own Gradle wrapper. Example:
+Run service tasks from the repository root so the shared security module is included:
 
 ```bash
-cd identity-service
-./gradlew bootRun
+./gradlew :identity-service:bootRun
 ```
 
 On Windows PowerShell:
 
 ```powershell
-cd identity-service
-.\gradlew.bat bootRun
+.\gradlew.bat :identity-service:bootRun
 ```
 
 Local runs require the environment variables referenced by that service's `application.properties`, such as MongoDB URI, JWT secret, Cloudinary settings, Stripe settings, or dependent service URLs.
@@ -120,8 +126,7 @@ Run tests for all modules:
 Run tests for one service:
 
 ```bash
-cd listing-service
-./gradlew test
+./gradlew :listing-service:test
 ```
 
 ## Repository Layout

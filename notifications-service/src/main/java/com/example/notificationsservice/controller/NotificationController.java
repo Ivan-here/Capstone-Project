@@ -1,5 +1,7 @@
 package com.example.notificationsservice.controller;
 
+import com.locally.security.Access;
+
 import com.example.notificationsservice.client.IdentityClient;
 import com.example.notificationsservice.model.Notification;
 import com.example.notificationsservice.repository.NotificationRepository;
@@ -25,6 +27,7 @@ public class NotificationController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Notification create(@RequestBody Notification notification) {
+        Access.admin();
         validatePayload(notification);
 
         notification.setId(null);
@@ -40,6 +43,7 @@ public class NotificationController {
             @RequestParam String userId,
             @RequestParam(required = false) Boolean read
     ) {
+        Access.owner(userId);
         if (userId == null || userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
         }
@@ -53,12 +57,15 @@ public class NotificationController {
 
     @GetMapping("/{id}")
     public Notification getById(@PathVariable String id) {
-        return repo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found: " + id));
+        Notification notification = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        Access.owner(notification.getUserId());
+        return notification;
     }
 
     @GetMapping("/unread-count")
     public long unreadCount(@RequestParam String userId) {
+        Access.owner(userId);
         if (userId == null || userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
         }
@@ -67,8 +74,10 @@ public class NotificationController {
 
     @PutMapping("/{id}")
     public Notification update(@PathVariable String id, @RequestBody Notification updated) {
+        Access.admin();
         Notification existing = repo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found: " + id));
+        Access.owner(existing.getUserId());
 
         validatePayload(updated);
 
@@ -92,6 +101,7 @@ public class NotificationController {
     public Notification markRead(@PathVariable String id, @RequestParam boolean read) {
         Notification existing = repo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found: " + id));
+        Access.owner(existing.getUserId());
 
         existing.setRead(read);
         return repo.save(existing);
@@ -99,6 +109,7 @@ public class NotificationController {
 
     @PatchMapping("/user/{userId}/read-all")
     public List<Notification> markAllRead(@PathVariable String userId) {
+        Access.owner(userId);
         if (userId == null || userId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
         }
@@ -115,6 +126,7 @@ public class NotificationController {
     public void delete(@PathVariable String id) {
         Notification existing = repo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found: " + id));
+        Access.owner(existing.getUserId());
 
         repo.delete(existing);
     }

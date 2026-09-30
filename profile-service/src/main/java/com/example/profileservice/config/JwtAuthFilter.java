@@ -26,7 +26,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Slf4j
-@Component
+
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final SecretKey key;

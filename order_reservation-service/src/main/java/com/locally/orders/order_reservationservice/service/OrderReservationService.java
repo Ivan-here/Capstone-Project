@@ -1,5 +1,7 @@
 package com.locally.orders.order_reservationservice.service;
 
+import com.locally.security.Access;
+
 import com.locally.orders.order_reservationservice.client.ListingClient;
 import com.locally.orders.order_reservationservice.client.NotificationClient;
 import com.locally.orders.order_reservationservice.dtos.*;
@@ -54,6 +56,7 @@ public class OrderReservationService {
     }
 
     public CreateOrderResponse createOrder(CreateOrderRequest request) {
+        Access.owner(request.shopperId());
         validateCreateOrderRequest(request);
 
         List<OrderItem> orderItems = new ArrayList<>();
@@ -79,6 +82,7 @@ public class OrderReservationService {
             }
 
             boolean listingIsDonation = isDonationListing(listing);
+            if (listingIsDonation || "NGO_ONLY".equals(listing.getVisibility())) Access.role("NGO");
             if (!donationOrderInitialized) {
                 donationOrder = listingIsDonation;
                 donationOrderInitialized = true;
@@ -87,7 +91,7 @@ public class OrderReservationService {
             }
 
             long unitPriceCents = toCents(listing.getPrice());
-            long lineTotalCents = unitPriceCents * requestItem.quantity();
+            long lineTotalCents = Math.multiplyExact(unitPriceCents, requestItem.quantity());
 
             OrderItem orderItem = OrderItem.builder()
                     .listingId(listing.getId())
@@ -103,7 +107,7 @@ public class OrderReservationService {
 
         long grossAmountCents = orderItems.stream()
                 .mapToLong(OrderItem::getLineTotalCents)
-                .sum();
+                .reduce(0L, Math::addExact);
 
         long platformFeeCents = calculatePlatformFeeCents(grossAmountCents);
         long sellerAmountCents = grossAmountCents - platformFeeCents;
@@ -139,6 +143,7 @@ public class OrderReservationService {
     }
 
     public OrderPaymentIntentResponse createPaymentIntentForOrder(String orderId, String shopperId) {
+        Access.owner(shopperId);
         Order order = getOrderById(orderId);
 
         if (!order.getShopperId().equals(shopperId)) {
@@ -206,6 +211,7 @@ public class OrderReservationService {
     }
 
     public Order cancelOrder(String orderId, CancelOrderRequest request) {
+        Access.owner(request.actorUserId());
         Order order = getOrderById(orderId);
 
         if (request == null || request.actorUserId() == null || request.actorUserId().isBlank()) {
@@ -231,6 +237,7 @@ public class OrderReservationService {
                 && (order.getPaymentStatus() == PaymentStatus.REQUIRES_PAYMENT
                 || order.getPaymentStatus() == PaymentStatus.PAYMENT_PROCESSING)) {
 
+            if (order.getStripePaymentIntentId() != null) paymentClient.cancelPayment(order.getStripePaymentIntentId());
             OrderStatus previousStatus = order.getStatus();
             PaymentStatus previousPaymentStatus = order.getPaymentStatus();
             order.setCancelledAt(java.time.LocalDateTime.now());
@@ -291,6 +298,7 @@ public class OrderReservationService {
     }
 
     public Order adminDisputeOrder(String orderId, AdminDisputeOrderRequest request) {
+        Access.admin();
         Order order = getOrderById(orderId);
 
         if (request == null || request.adminUserId() == null || request.adminUserId().isBlank()) {
@@ -378,6 +386,8 @@ public class OrderReservationService {
             throw new RuntimeException("Payment intent does not match order");
         }
 
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) throw new IllegalStateException("Order cannot be paid in its current state");
+        if (!Boolean.TRUE.equals(paymentClient.verifyPayment(order))) throw new IllegalStateException("Payment has not succeeded");
         Order finalizedOrder = finalizeOrderAfterCheckout(order, "system");
 
         return new PaymentSucceededResponse(
@@ -389,6 +399,7 @@ public class OrderReservationService {
     }
 
     public PaymentSucceededResponse confirmPaymentForShopper(String orderId, String shopperId, PaymentSucceededRequest request) {
+        Access.owner(shopperId);
         Order order = getOrderById(orderId);
 
         if (shopperId == null || shopperId.isBlank()) {
@@ -403,6 +414,8 @@ public class OrderReservationService {
     }
 
     public PaymentSucceededResponse confirmDonationForShopper(String orderId, String shopperId) {
+        Access.owner(shopperId);
+        Access.role("NGO");
         Order order = getOrderById(orderId);
 
         if (shopperId == null || shopperId.isBlank()) {
@@ -436,6 +449,7 @@ public class OrderReservationService {
         );
     }
     public Order markReadyForPickup(String orderId, ReadyForPickupRequest request) {
+        Access.owner(request.sellerUserId());
         Order order = getOrderById(orderId);
 
         if (request == null || request.sellerUserId() == null || request.sellerUserId().isBlank()) {
@@ -463,6 +477,8 @@ public class OrderReservationService {
     }
 
     public Order verifyPickupCode(String orderId, VerifyPickupCodeRequest request) {
+        Access.owner(request.sellerUserId());
+        com.locally.security.AttemptLimiter.check("pickup:" + orderId, 10, 900);
         Order order = getOrderById(orderId);
 
         if (request == null || request.sellerUserId() == null || request.sellerUserId().isBlank()) {
@@ -550,6 +566,7 @@ public class OrderReservationService {
     }
 
     public PickupCodeResponse getPickupCode(String orderId, String shopperId) {
+        Access.owner(shopperId);
         Order order = getOrderById(orderId);
 
         if (order.getPickupCodeExpiresAt() != null &&
@@ -580,7 +597,7 @@ public class OrderReservationService {
             throw new RuntimeException("shopperId is required");
         }
 
-        if (request.items() == null || request.items().isEmpty()) {
+        if (request.items() == null || request.items().isEmpty() || request.items().size() > 100) {
             throw new RuntimeException("At least one item is required");
         }
 
@@ -590,7 +607,7 @@ public class OrderReservationService {
                 throw new RuntimeException("Order item cannot be null");
             }
 
-            if (item.listingId() == null || item.listingId().isBlank()) {
+            if (item.listingId() == null || !item.listingId().matches("[A-Za-z0-9_-]{1,128}")) {
                 throw new RuntimeException("listingId is required for every item");
             }
 
@@ -624,7 +641,8 @@ public class OrderReservationService {
             throw new RuntimeException("Listing owner is missing for listing " + listing.getId());
         }
 
-        if (listing.getPrice() == null) {
+        if (listing.getExpiryDate() != null && !listing.getExpiryDate().isAfter(LocalDateTime.now())) throw new IllegalArgumentException("Listing expired");
+        if (listing.getPrice() == null || listing.getPrice().signum() < 0) {
             throw new RuntimeException("Listing price is missing for listing " + listing.getId());
         }
 
@@ -657,37 +675,44 @@ public class OrderReservationService {
 
             int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
             int newQty = currentQty + item.getQuantity();
-            listingClient.updateListingQuantity(item.getListingId(), newQty);
+            listingClient.adjustStock(item.getListingId(), "restore:" + order.getId(), item.getQuantity());
         }
     }
 
     public List<Order> getAllOrders() {
+        Access.admin();
         return orderRepository.findAll();
     }
 
     public void deleteOrder(String orderId) {
+        Access.admin();
         Order existing = getOrderById(orderId);
         orderRepository.delete(existing);
     }
 
     public Order getOrderById(String orderId) {
-        return orderRepository.findById(orderId)
+        Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+        Access.participant(order.getShopperId(), order.getSellerUserId());
+        return order;
     }
 
     public List<Order> getOrdersByShopper(String shopperId) {
+        Access.owner(shopperId);
         return orderRepository.findByShopperId(shopperId).stream()
                 .filter(this::shouldIncludeInHistory)
                 .toList();
     }
 
     public List<Order> getOrdersBySeller(String sellerUserId) {
+        Access.owner(sellerUserId);
         return orderRepository.findBySellerUserId(sellerUserId).stream()
                 .filter(this::shouldIncludeInHistory)
                 .toList();
     }
 
     public OrderHistoryResponse getOrderHistory(String userId) {
+        Access.owner(userId);
         List<Order> bought = orderRepository.findByShopperId(userId).stream()
                 .filter(this::shouldIncludeInHistory)
                 .sorted(Comparator.comparing(Order::getOrderDate, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
@@ -758,13 +783,8 @@ public class OrderReservationService {
                     throw new RuntimeException("Listing not found during stock deduction: " + item.getListingId());
                 }
 
-                int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
-                if (currentQty < item.getQuantity()) {
-                    throw new RuntimeException("Not enough stock to finalize checkout for listing " + item.getListingId());
-                }
 
-                int newQty = currentQty - item.getQuantity();
-                listingClient.updateListingQuantity(item.getListingId(), newQty);
+                listingClient.adjustStock(item.getListingId(), "deduct:" + order.getId(), -item.getQuantity());
             }
 
             order.setStockDeducted(true);
@@ -863,6 +883,12 @@ public class OrderReservationService {
     // ================= RESERVATIONS =================
 
     public Reservation createReservation(Reservation reservation) {
+        Access.owner(reservation.getNgoId());
+        Access.role("NGO");
+        reservation.setId(java.util.UUID.randomUUID().toString());
+        reservation.setStatus("RESERVED");
+        reservation.setReservationTime(LocalDateTime.now());
+        if (reservation.getSurplusItemId() == null || !reservation.getSurplusItemId().matches("[A-Za-z0-9_-]{1,128}")) throw new IllegalArgumentException("Invalid listing ID");
         var listing = listingClient.getListing(reservation.getSurplusItemId());
         if (listing == null) {
             throw new RuntimeException("Listing not found");
@@ -880,32 +906,39 @@ public class OrderReservationService {
             throw new RuntimeException("No quantity available");
         }
 
-        listingClient.updateListingQuantity(reservation.getSurplusItemId(), availableQty - 1);
+        reservation.setRestaurantId(listing.getOwnerId());
+        listingClient.adjustStock(reservation.getSurplusItemId(), "reservation-deduct:" + reservation.getId(), -1);
 
         return reservationRepository.save(reservation);
     }
 
     public List<Reservation> getReservationsByNgo(String ngoId) {
+        Access.owner(ngoId);
         return reservationRepository.findByNgoId(ngoId);
     }
 
     public List<Reservation> getAllReservations() {
+        Access.admin();
         return reservationRepository.findAll();
     }
 
     public Reservation getReservationById(String id) {
-        return reservationRepository.findById(id)
+        Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        Access.participant(reservation.getNgoId(), reservation.getRestaurantId());
+        return reservation;
     }
 
     public Reservation updateReservation(String id, Reservation updatedReservation) {
+        Access.admin();
         Reservation existing = getReservationById(id);
 
-        existing.setNgoId(updatedReservation.getNgoId());
-        existing.setSurplusItemId(updatedReservation.getSurplusItemId());
+        // Ownership and listing references are immutable.
+
 
         if (updatedReservation.getStatus() != null && !updatedReservation.getStatus().isBlank()) {
             String normalizedStatus = normalizeReservationStatus(updatedReservation.getStatus());
+            if (!"RESERVED".equals(existing.getStatus()) && !normalizedStatus.equals(existing.getStatus())) throw new IllegalStateException("Reservation is final");
 
             if ("CANCELLED".equalsIgnoreCase(normalizedStatus)
                     && !"CANCELLED".equalsIgnoreCase(existing.getStatus())) {
@@ -922,18 +955,22 @@ public class OrderReservationService {
         Reservation reservation = getReservationById(id);
         String normalizedStatus = normalizeReservationStatus(status);
 
+        if (!"RESERVED".equals(reservation.getStatus()) && !normalizedStatus.equals(reservation.getStatus())) throw new IllegalStateException("Reservation is final");
         if ("CANCELLED".equalsIgnoreCase(normalizedStatus) && !"CANCELLED".equalsIgnoreCase(reservation.getStatus())) {
             tryRestoreReservationStock(reservation);
         }
 
+        if (!Access.privileged() && !"CANCELLED".equals(normalizedStatus)) Access.owner(reservation.getRestaurantId());
+        if (!"RESERVED".equals(reservation.getStatus()) && !normalizedStatus.equals(reservation.getStatus())) throw new IllegalStateException("Reservation is final");
         reservation.setStatus(normalizedStatus);
         return reservationRepository.save(reservation);
     }
 
     public void deleteReservation(String id) {
+        Access.admin();
         Reservation existing = getReservationById(id);
 
-        if (!"CANCELLED".equalsIgnoreCase(existing.getStatus())) {
+        if ("RESERVED".equalsIgnoreCase(existing.getStatus())) {
             tryRestoreReservationStock(existing);
         }
 
@@ -945,6 +982,7 @@ public class OrderReservationService {
         if ("CANCELED".equals(normalized)) {
             return "CANCELLED";
         }
+        if (!Set.of("RESERVED", "PICKED_UP", "COMPLETED", "CANCELLED").contains(normalized)) throw new IllegalArgumentException("Invalid reservation status");
         return normalized;
     }
 
@@ -960,7 +998,7 @@ public class OrderReservationService {
             }
 
             int currentQty = listing.getQuantity() == null ? 0 : listing.getQuantity();
-            listingClient.updateListingQuantity(reservation.getSurplusItemId(), currentQty + 1);
+            listingClient.adjustStock(reservation.getSurplusItemId(), "reservation-restore:" + reservation.getId(), 1);
         } catch (Exception ex) {
             System.err.println("Failed to restore stock for reservation " + reservation.getId() + ": " + ex.getMessage());
         }

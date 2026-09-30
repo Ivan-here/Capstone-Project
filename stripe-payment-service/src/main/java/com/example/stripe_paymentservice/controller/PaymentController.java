@@ -35,6 +35,16 @@ public class PaymentController {
         return stripePaymentService.handleWebhook(payload, signatureHeader);
     }
 
+    @PostMapping("/verify")
+    public boolean verifyPayment(@RequestBody VerifyPaymentRequest request) throws StripeException {
+        return stripePaymentService.verifyPayment(request);
+    }
+
+    @PostMapping("/cancel")
+    public void cancelUnpaidIntent(@RequestBody Map<String, String> request) throws StripeException {
+        stripePaymentService.cancelUnpaidIntent(request.get("paymentIntentId"));
+    }
+
     @PostMapping("/release")
     public ReleaseFundsResponse releaseFunds(
             @RequestBody ReleaseFundsRequest request

@@ -1,6 +1,6 @@
 plugins {
 	java
-	id("org.springframework.boot") version "3.4.2"
+	id("org.springframework.boot") version "3.5.16"
 	id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -16,7 +16,7 @@ java {
 
 dependencyManagement {
 	imports {
-		mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.0")
+		mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.3")
 	}
 }
 
@@ -31,11 +31,13 @@ repositories {
 }
 
 dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation(project(":security-common"))
 	implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("com.stripe:stripe-java:26.3.0")
-	implementation("org.apache.httpcomponents.client5:httpclient5:5.4.1")
+	implementation("org.apache.httpcomponents.client5:httpclient5")
 
 	compileOnly("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")

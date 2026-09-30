@@ -38,7 +38,7 @@ public class UserServiceImpl implements UserService {
         if (normalizedLastName == null || normalizedLastName.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Last name is required");
         }
-        if (rawPassword == null || rawPassword.isBlank()) {
+        if (rawPassword == null || rawPassword.isBlank() || rawPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password is required");
         }
         if (userRepo.existsByEmail(normalizedEmail)) {
@@ -83,20 +83,23 @@ public class UserServiceImpl implements UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password is required");
         }
 
-        String emailCandidate = normalizedLogin.toLowerCase();
+        String attemptKey = "login:" + normalizedLogin.toLowerCase(java.util.Locale.ROOT);
+        com.locally.security.AttemptLimiter.check(attemptKey, 10, 900);
+        String emailCandidate = normalizedLogin.toLowerCase(java.util.Locale.ROOT);
 
         UserCredential u = userRepo.findByEmailOrUsername(emailCandidate, normalizedLogin)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         if (u.getStatus() != UserStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is not active");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
         if (!encoder.matches(rawPassword, u.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
-        log.info("Authenticated userId={} email={} username={}", u.getId(), u.getEmail(), u.getUsername());
+        com.locally.security.AttemptLimiter.clear(attemptKey);
+        log.info("Authenticated userId={}", u.getId());
         return u;
     }
 
@@ -123,7 +126,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         if (!u.getRoles().contains(role)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User does not have this role");
+            return u;
         }
 
         if (u.getRoles().size() == 1) {
@@ -254,7 +257,8 @@ public class UserServiceImpl implements UserService {
             return users;
         }
 
-        List<UserCredential> users = userRepo.searchUsers(normalizedQuery);
+        if (normalizedQuery.length() > 120) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Search too long");
+        List<UserCredential> users = userRepo.searchUsers(java.util.regex.Pattern.quote(normalizedQuery));
         log.info("Searched users query='{}' count={}", normalizedQuery, users.size());
         return users;
     }

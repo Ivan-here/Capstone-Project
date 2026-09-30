@@ -1,5 +1,7 @@
 package com.example.followservice.controller;
 
+import com.locally.security.Access;
+
 import com.example.followservice.dto.FollowResponseDTO;
 import com.example.followservice.service.FollowService;
 import lombok.RequiredArgsConstructor;
@@ -13,28 +15,38 @@ import java.util.Map;
 @RequiredArgsConstructor // Autowires the FollowService automatically
 public class FollowController {
 
+    @GetMapping("/internal/relationship")
+    public boolean relationship(@RequestParam String follower, @RequestParam String author) {
+        Access.internal();
+        return followService.isFollowing(follower, author);
+    }
+
     private final FollowService followService;
 
     @PostMapping("/{targetId}")
     public ResponseEntity<Void> follow(@RequestHeader("userId") String userId, @PathVariable String targetId) {
+        Access.owner(userId);
         followService.followUser(userId, targetId);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{targetId}")
     public ResponseEntity<Void> unfollow(@RequestHeader("userId") String userId, @PathVariable String targetId) {
+        Access.owner(userId);
         followService.unfollowUser(userId, targetId);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/remove/{followerId}")
     public ResponseEntity<Void> removeFollower(@RequestHeader("userId") String userId, @PathVariable String followerId) {
+        Access.owner(userId);
         followService.unfollowUser(followerId, userId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{targetId}/block")
     public ResponseEntity<Void> block(@RequestHeader("userId") String userId, @PathVariable String targetId) {
+        Access.owner(userId);
         followService.blockUser(userId, targetId);
         return ResponseEntity.ok().build();
     }

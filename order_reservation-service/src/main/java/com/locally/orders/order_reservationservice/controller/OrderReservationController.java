@@ -22,7 +22,8 @@ public class OrderReservationController {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        if (ex instanceof org.springframework.web.server.ResponseStatusException status) return ResponseEntity.status(status.getStatusCode()).body("Request denied");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid order request");
     }
 
     @PostMapping("/orders")
@@ -182,26 +183,16 @@ public class OrderReservationController {
     // ===================== INTERNAL =====================
 
     @GetMapping("/internal/orders/{orderId}/verify")
-    public boolean verifyOrderCompletion(
-            @PathVariable String orderId,
-            @RequestParam String userId) {
-
-        try {
-            Order order = orderService.getOrderById(orderId);
-            if (order != null && "COMPLETED".equalsIgnoreCase(order.getStatus().name())) {
-                return userId.equals(order.getShopperId()) || userId.equals(order.getSellerUserId());
-            }
-        } catch (Exception ignored) {
-        }
-
-        try {
-            Reservation res = orderService.getReservationById(orderId);
-            if (res != null && "COMPLETED".equalsIgnoreCase(res.getStatus())) {
-                return userId.equals(res.getNgoId()) || userId.equals(res.getRestaurantId());
-            }
-        } catch (Exception ignored) {
-        }
-
-        return false;
+    public boolean verifyOrderCompletion(@PathVariable String orderId, @RequestParam String userId,
+            @RequestParam String targetId, @RequestParam String targetType) {
+        com.locally.security.Access.internal();
+        Order order = orderService.getOrderById(orderId);
+        if (order.getStatus() != OrderStatus.COMPLETED) return false;
+        return switch (targetType) {
+            case "SELLER" -> userId.equals(order.getShopperId()) && targetId.equals(order.getSellerUserId());
+            case "BUYER" -> userId.equals(order.getSellerUserId()) && targetId.equals(order.getShopperId());
+            case "LISTING" -> userId.equals(order.getShopperId()) && order.getItems().stream().anyMatch(item -> targetId.equals(item.getListingId()));
+            default -> false;
+        };
     }
 }

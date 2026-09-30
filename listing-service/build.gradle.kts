@@ -1,7 +1,7 @@
 plugins {
     java
     // Kotlin uses ("") and version "..."
-    id("org.springframework.boot") version "3.4.2"
+    id("org.springframework.boot") version "3.5.16"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -28,13 +28,14 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.0")
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.3")
     }
 }
-extra["springCloudVersion"] = "2024.0.0"
+extra["springCloudVersion"] = "2025.0.3"
 
 
 dependencies {
+    implementation(project(":security-common"))
     // Kotlin requires parentheses ("...") and double quotes
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -45,7 +46,7 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
 
     // Cloudinary for Image Uploads
-    implementation("com.cloudinary:cloudinary-http44:1.36.0")
+    implementation("com.cloudinary:cloudinary-http5:2.5.0")
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 

@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -14,15 +22,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Test and build the checked-out source
+        run: chmod +x gradlew && ./gradlew securityRegression bootJar --no-daemon --max-workers=2
+
       - name: Deploy backend
         shell: bash
         env:
           COMPOSE_PARALLEL_LIMIT: 2
           EC2_APP_DIR: ${{ secrets.EC2_APP_DIR }}
         run: |
+          set -euo pipefail
+          case "$EC2_APP_DIR" in
+            /*) ;;
+            *) echo "EC2_APP_DIR must be an absolute path"; exit 1 ;;
+          esac
+          test "$EC2_APP_DIR" != /
           mkdir -p "$EC2_APP_DIR/deploy"
-          cp deploy/Dockerfile.runtime "$EC2_APP_DIR/deploy/Dockerfile.runtime"
-          cp deploy/docker-compose.runtime.yml "$EC2_APP_DIR/deploy/docker-compose.runtime.yml"
+          # Avoid copying production secrets into the checkout or image context.
+          if [ "$(pwd -P)" != "$(cd "$EC2_APP_DIR" && pwd -P)" ]; then
+            cp docker-compose.yml "$EC2_APP_DIR/docker-compose.yml"
+            cp deploy/Dockerfile.runtime deploy/Dockerfile.runtime.dockerignore deploy/docker-compose.runtime.yml "$EC2_APP_DIR/deploy/"
+            for service in identity-service profile-service verification-service listing-service order_reservation-service notifications-service community-service review-service follow-service admin-service stripe-payment-service api-gateway; do
+              mkdir -p "$EC2_APP_DIR/$service/build/libs"
+              cp "$service/build/libs/app.jar" "$EC2_APP_DIR/$service/build/libs/app.jar"
+            done
+          fi
           cd "$EC2_APP_DIR"
-          docker-compose -f docker-compose.yml -f deploy/docker-compose.runtime.yml up -d --no-build
+          docker-compose -f docker-compose.yml -f deploy/docker-compose.runtime.yml up -d --build
           docker-compose -f docker-compose.yml -f deploy/docker-compose.runtime.yml ps

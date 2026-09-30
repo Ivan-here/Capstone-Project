@@ -41,3 +41,10 @@ out/
 
 # Deployment build artifacts
 deploy/*.tar
+
+.env.*
+!.env.example
+*.pem
+*.key
+*.jar
+!**/gradle/wrapper/gradle-wrapper.jar

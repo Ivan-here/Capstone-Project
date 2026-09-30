@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 @FeignClient(name = "profile-service", url = "${application.config.profile-url}")
 public interface ProfileClient {
 
+    @org.springframework.web.bind.annotation.PatchMapping("/internal/profiles/{userId}/business/verified")
+    void setVerified(@PathVariable("userId") String userId, @org.springframework.web.bind.annotation.RequestParam("verified") boolean verified);
+
     // This calls the endpoint we are about to create in Profile Service
     @PostMapping("/internal/profiles/{userId}/verify")
     void verifyProfile(@PathVariable("userId") String userId);

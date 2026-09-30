@@ -78,6 +78,6 @@ public class ProfileController {
     @GetMapping("/{userId}")
     public ProfileResponse getProfileById(@PathVariable String userId) {
         log.info("GET /profiles/{}", userId);
-        return profileService.getMe(userId);
+        return profileService.getProfileByUserId(userId);
     }
 }

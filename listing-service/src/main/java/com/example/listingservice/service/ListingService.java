@@ -1,5 +1,7 @@
 package com.example.listingservice.service;
 
+import com.locally.security.Access;
+
 import com.example.listingservice.dto.CreateListingDTO;
 import com.example.listingservice.dto.internal.FollowResponseDTO;
 import com.example.listingservice.dto.internal.NotificationRequest;
@@ -42,6 +44,10 @@ public class ListingService {
     private final NotificationClient notificationClient;
 
     public Listing createListing(CreateListingDTO dto, List<MultipartFile> images, String expectedBusinessType) {
+        Access.owner(dto.ownerId());
+        Access.role(expectedBusinessType);
+        if (!("FARMER".equals(expectedBusinessType) ? "FARM_PRODUCT" : "SURPLUS_FOOD").equals(dto.type())) throw new IllegalArgumentException("Invalid listing type");
+        if ("SURPLUS_FOOD".equals(dto.type()) && dto.price().signum() != 0) throw new IllegalArgumentException("Donations must be free");
 
         log.info("Fetching profile for owner: {}", dto.ownerId());
         var profile = profileClient.getProfile(dto.ownerId());
@@ -168,9 +174,11 @@ public class ListingService {
                 .toList();
     }
 
-    public List<Listing> getAllListings() {return repository.findAll();}
+    public List<Listing> getAllListings() {
+        Access.admin();return repository.findAll();}
 
     public Listing closeListing(String id) {
+        Access.owner(getListingById(id).getOwnerId());
         Listing listing = getListingById(id);
         listing.setStatus("CLOSED");
         listing.setUpdatedAt(LocalDateTime.now());
@@ -178,6 +186,7 @@ public class ListingService {
     }
 
     public Listing updateStatus(String id, String status) {
+        Access.admin();
         Listing listing = getListingById(id);
         String normalizedStatus = normalizeStatus(status);
 
@@ -187,6 +196,7 @@ public class ListingService {
     }
 
     public Listing updateStock(String id, UpdateListingDTO dto) {
+        Access.owner(getListingById(id).getOwnerId());
         Listing listing = getListingById(id);
         listing.setQuantity(dto.newQuantity());
 
@@ -199,9 +209,11 @@ public class ListingService {
     }
 
     public Listing updateFullListing(String id, FullUpdateListingDTO dto, List<MultipartFile> images) {
+        Access.owner(getListingById(id).getOwnerId());
         Listing existingListing = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Listing not found with id: " + id));
 
+        if ("SURPLUS_FOOD".equals(existingListing.getType()) && dto.price() != 0) throw new IllegalArgumentException("Donations must be free");
         existingListing.setTitle(dto.title());
         existingListing.setPrice(BigDecimal.valueOf(dto.price()));
         existingListing.setUnit(dto.unit());
@@ -236,11 +248,13 @@ public class ListingService {
     }
 
     public void deleteListingById(String id){
+        Access.owner(getListingById(id).getOwnerId());
         log.info("Deleting listing with id: {}", id);
         repository.deleteById(id);
     }
 
     public void deleteListingsByOwnerId(String ownerId) {
+        Access.internal();
         if (ownerId == null || ownerId.isBlank()) {
             return;
         }

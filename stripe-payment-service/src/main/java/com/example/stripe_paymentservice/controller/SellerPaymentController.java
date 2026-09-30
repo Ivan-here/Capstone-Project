@@ -1,5 +1,7 @@
 package com.example.stripe_paymentservice.controller;
 
+import com.locally.security.Access;
+
 import com.example.stripe_paymentservice.dtos.CreateConnectedAccountRequest;
 import com.example.stripe_paymentservice.dtos.OnboardingLinkResponse;
 import com.example.stripe_paymentservice.model.SellerPaymentProfile;
@@ -18,12 +20,14 @@ public class SellerPaymentController {
     @PostMapping("/connect-account")
     public SellerPaymentProfile createConnectedAccount(@RequestBody CreateConnectedAccountRequest request)
             throws StripeException {
+        Access.owner(request.getUserId());
         return stripeConnectService.createConnectedAccount(request.getUserId());
     }
 
     @PostMapping("/{userId}/onboarding-link")
     public OnboardingLinkResponse createOnboardingLink(@PathVariable String userId)
             throws StripeException {
+        Access.owner(userId);
         return new OnboardingLinkResponse(
                 stripeConnectService.createOnboardingLink(userId)
         );
@@ -32,11 +36,13 @@ public class SellerPaymentController {
     @GetMapping("/{userId}/status")
     public SellerPaymentProfile refreshStatus(@PathVariable String userId)
             throws StripeException {
+        Access.owner(userId);
         return stripeConnectService.refreshStatus(userId);
     }
 
     @GetMapping("/{userId}")
     public SellerPaymentProfile getSellerPaymentProfile(@PathVariable String userId) {
+        Access.owner(userId);
         return stripeConnectService.getByUserId(userId);
     }
 }

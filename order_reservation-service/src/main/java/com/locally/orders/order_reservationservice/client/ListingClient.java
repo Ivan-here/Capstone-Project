@@ -31,6 +31,11 @@ public class ListingClient {
         }
     }
 
+    public void adjustStock(String listingId, String operationId, int delta) {
+        restTemplate.postForObject(listingBaseUrl + "/api/listings/internal/" + listingId + "/stock",
+            java.util.Map.of("operationId", operationId, "delta", delta), ListingDto.class);
+    }
+
     public void updateListingQuantity(String listingId, int newQuantity) {
         UpdateQuantityDto body = new UpdateQuantityDto(newQuantity);
 
@@ -54,6 +59,8 @@ public class ListingClient {
         private String type;
         private BigDecimal price;
         private String unit;
+        private String visibility;
+        private java.time.LocalDateTime expiryDate;
     }
 
     public record UpdateQuantityDto(Integer newQuantity) {}

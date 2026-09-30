@@ -17,6 +17,11 @@ import java.util.*;
 @RequiredArgsConstructor
 public class FollowService {
 
+    public boolean isFollowing(String follower, String author) {
+        return followRepository.existsByFollowerIdAndFollowingIdAndStatus(follower, author, ConnectionStatus.ACTIVE)
+            && !followRepository.existsByFollowerIdAndFollowingIdAndStatus(author, follower, ConnectionStatus.BLOCKED);
+    }
+
     private final FollowRepository followRepository;
     private final ProfileClient profileClient;
     private final NotificationClient notificationClient;
@@ -24,6 +29,7 @@ public class FollowService {
     public void followUser(String followerId, String followingId) {
         if (followerId.equals(followingId)) throw new IllegalArgumentException("Cannot follow yourself");
 
+        if (followRepository.existsByFollowerIdAndFollowingIdAndStatus(followingId, followerId, ConnectionStatus.BLOCKED)) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN);
         Optional<Follow> existing = followRepository.findByFollowerIdAndFollowingId(followerId, followingId);
         if (existing.isPresent()) {
             if (existing.get().getStatus() == ConnectionStatus.BLOCKED) {
